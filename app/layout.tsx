@@ -15,7 +15,7 @@ import "./globals.css";
 //   subsets: ["latin"],
 // });
 
-const font = Nunito ({subsets:["latin"]});
+const font = Nunito({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -30,12 +30,12 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <html lang="en">
-      <body
-        className={font.className}
-      >
-        {children}
-      </body>
-    </html>
+        <body
+          className={font.className}
+        >
+          {children}
+        </body>
+      </html>
     </ClerkProvider>
   );
 }
