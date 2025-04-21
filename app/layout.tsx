@@ -1,9 +1,8 @@
 import { Toaster } from '@/components/ui/sonner';
-import {
-  ClerkProvider
-} from '@clerk/nextjs';
+import { ClerkProvider } from '@clerk/nextjs';
 import type { Metadata } from "next";
 import { Nunito } from "next/font/google";
+import { ExitModal } from '@/components/modals/exit-modal';
 import "./globals.css";
 
 // const geistSans = Geist({
@@ -34,7 +33,8 @@ export default function RootLayout({
         <body
           className={font.className}
         >
-          <Toaster/>
+          <Toaster />
+          <ExitModal />
           {children}
         </body>
       </html>
