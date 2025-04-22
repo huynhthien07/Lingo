@@ -156,6 +156,25 @@ const main = async () => {
             },
             
         ]);
+
+        await db.insert(schema.challenges).values([
+            {
+                id: 3,
+                lessonId: 2, // Verbs
+                type: "SELECT",
+                order: 1,
+                question: 'Which one of these is the "man"?',
+
+            },
+            {
+                id: 4,
+                lessonId: 2, // Verbs
+                type: "ASSIST",
+                order: 2,
+                question: 'The man',
+            }
+        ]);
+
         
         console.log("Seeding finished");
     }

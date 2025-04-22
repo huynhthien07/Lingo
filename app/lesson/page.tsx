@@ -20,7 +20,7 @@ const LessonPage = async () => {
         redirect("/learn");
     };
 
-    const inititalLesson = lesson.challenges
+    const initialPercentage = lesson.challenges
         .filter((challenge) => challenge.completed)
         .length / lesson.challenges.length * 100;
 
@@ -29,7 +29,7 @@ const LessonPage = async () => {
             initialLessonId={lesson.id}
             initialLessonChallenges={lesson.challenges}
             initialHearts={userProgress.hearts}
-            initialPercentage={inititalLesson}
+            initialPercentage={initialPercentage}
             userSubscription={null}
         />
     );
