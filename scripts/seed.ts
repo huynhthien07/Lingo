@@ -91,6 +91,13 @@ const main = async () => {
                 order: 1,
                 question: 'Which one of these is the "man"?',
 
+            },
+            {
+                id: 2,
+                lessonId: 1, // Nouns
+                type: "ASSIST",
+                order: 2,
+                question: 'The man',
             }
         ]);
 
@@ -119,8 +126,37 @@ const main = async () => {
                 text: "el robot",
                 audioSrc: "/es_robot.mp3",
             },
+            
         ]);
 
+        await db.insert(schema.challengeOptions).values([
+            {
+                id: 4,
+                challengeId: 2, // "the man"?
+                //imageSrc: "/man.svg",
+                correct: true,
+                text: "el hombre",
+                audioSrc: "/es_man.mp3",
+            },
+            {
+                id: 5,
+                challengeId: 2,
+                //imageSrc: "/woman.svg",
+                correct: false,
+                text: "la mujer",
+                audioSrc: "/es_woman.mp3",
+            },
+            {
+                id: 6,
+                challengeId: 2,
+                //imageSrc: "/robot.svg",
+                correct: false,
+                text: "el robot",
+                audioSrc: "/es_robot.mp3",
+            },
+            
+        ]);
+        
         console.log("Seeding finished");
     }
     catch (error) {
