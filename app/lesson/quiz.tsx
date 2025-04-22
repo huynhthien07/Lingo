@@ -3,9 +3,10 @@
 import { useState } from "react";
 
 import { challengeOptions, challenges } from "@/db/schema";
+import { Challenge } from "./challenge";
+import { Footer } from "./footer";
 import { Header } from "./header";
 import { QuestionBubble } from "./question-bubble";
-import { Challenge } from "./challenge";
 
 type Props = {
     initialPercentage: number;
@@ -34,8 +35,16 @@ export const Quiz = ({
         return unCompletedIndex === -1 ? 0 : unCompletedIndex;
     });
 
+    const [selectedOption, setSelectOption] = useState<number>();
+    const [status , setStatus] = useState<"correct"|"wrong"|"none">("none");
+
     const challenge = challenges[activeIndex];
     const options = challenge?.challengeOptions ?? [];
+
+    const onSelect = (id: number) => {
+        if (status !== "none") return;
+        setSelectOption(id); 
+    }
 
     const title = challenge.type === "ASSIST"
         ? "Select the correct answer"
@@ -61,9 +70,9 @@ export const Quiz = ({
 
                             <Challenge
                                 options={options}
-                                onSelect={() => { }}
-                                status="correct"
-                                selectedOption={undefined}
+                                onSelect={onSelect}
+                                status={status}
+                                selectedOption={selectedOption}
                                 disabled={false}
                                 type={challenge.type}
                             />
@@ -72,6 +81,11 @@ export const Quiz = ({
                     </div>
                 </div>
             </div>
+            <Footer 
+                disabled = {!selectedOption}
+                status = {status}
+                onCheck = {() => {}}
+            />
         </>
     );
 };
