@@ -1,7 +1,7 @@
 import { clerkMiddleware } from "@clerk/nextjs/server";
 
 export default clerkMiddleware({
-    //publicRoutes: [],
+   // publicRoutes: ["/", "/api/webhooks/stripe"],
 });
 
 export const config = {
@@ -12,3 +12,5 @@ export const config = {
     '/(api|trpc)(.*)',
   ],
 };
+
+
