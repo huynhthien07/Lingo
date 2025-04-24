@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 
 import { upsertChallengeProgress } from "@/actions/challenge-progress";
 import { reduceHearts } from "@/actions/user-progress";
-import { challengeOptions, challenges } from "@/db/schema";
+import { challengeOptions, challenges, userSubscription } from "@/db/schema";
 import { useHeartsModal } from "@/store/use-hearts-modal";
 import { usePracticeModal } from "@/store/use-practice-modal";
 import Image from "next/image";
@@ -28,7 +28,9 @@ type Props = {
         challengeOptions: typeof challengeOptions.$inferSelect[];
     })[];
 
-    userSubscription: any; //TODO: Replace with subscription type
+    userSubscription: typeof userSubscription.$inferSelect & {
+        isActive: boolean;
+    } | null; 
 };
 
 export const Quiz = ({
@@ -216,7 +218,7 @@ export const Quiz = ({
             <Header
                 hearts={hearts}
                 percentage={percentage}
-                hasActiveSubcription={!!userSubscription?.activeSubscription}
+                hasActiveSubcription={!!userSubscription?.isActive}
             />
             <div className="flex-1">
                 <div className="h-full flex items-center justify-center">

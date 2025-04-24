@@ -1,7 +1,7 @@
-import { InfinityIcon, X } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
-import Image from "next/image";
 import { useExitModal } from "@/store/use-exit-modal";
+import { InfinityIcon, X } from "lucide-react";
+import Image from "next/image";
 
 
 type Props = {
@@ -34,7 +34,7 @@ export const Header = ({
                     className="mr-2"
                 />
                 {hasActiveSubcription
-                    ? <InfinityIcon className="h-6 w-6 stroke-[3]" />
+                    ? <InfinityIcon className="h-6 w-6 stroke-[3] shrink-0" />
                     : hearts
                 }
 

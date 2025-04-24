@@ -27,13 +27,15 @@ export const getUnits = cache(async () => {
         return [];
     }
 
-    // TODO: Conform whether order is needed
     const data = await db.query.units.findMany({
+        orderBy: (units, { asc }) => [asc(units.order)],
         where: eq(units.courseId, userProgress.activeCourseId),
         with: {
             lessons: {
+                orderBy: (lessons, {asc}) => [asc(lessons.order)],
                 with: {
                     challenges: {
+                        orderBy: (challenges, {asc}) => [asc(challenges.order)],
                         with: {
                             challengeProgress: {
                                 where: eq(
@@ -75,7 +77,16 @@ export const getCourses = cache(async () => {
 export const getCourseById = cache(async (courseId: number) => {
     const data = await db.query.courses.findFirst({
         where: eq(courses.id, courseId),
-        // TODO: Populate units and lessons
+        with: {
+            units:{
+                orderBy: (units, {asc}) => [asc(units.order)],
+                with: {
+                    lessons: {
+                        orderBy: (lessons, {asc}) => [asc(lessons.order)],
+                    },
+                },
+            },
+        },
     });
     return data;
 });
@@ -102,6 +113,7 @@ export const getCourseProgress = cache(async () => {
                 with: {
                     unit: true,
                     challenges: {
+                        orderBy: (challenges, { asc }) => [asc(challenges.order)],
                         with: {
                             challengeProgress: {
                                 where: eq(challengeProgress.userId, userId),
@@ -168,7 +180,6 @@ export const getLesson = cache(async (id?: number) => {
     };
 
     const normalizedData = data.challenges.map((challenge) => {
-        //TODO: if something doesn't work, check the last if clause 
         const completed = challenge.challengeProgress
             && challenge.challengeProgress.length > 0
             && challenge.challengeProgress.every((progress) => progress.completed);
@@ -222,4 +233,25 @@ export const getUserSubscription = cache (async()=>{
             ... data,
             isActive: !!isActive,
         };
+});
+
+export const getTopTenUsers = cache ( async () => {
+
+    const {userId} = await auth();
+
+    if (!userId){
+        return [];
+    }
+
+    const data = await db.query.userProgress.findMany({
+        orderBy: (userProgress, {desc}) => [desc(userProgress.points)],
+        limit: 10,
+        columns: {
+            userId:true,
+            userName: true,
+            userImageSrc: true,
+            points: true,
+        },
+    }); 
+    return data;
 });
