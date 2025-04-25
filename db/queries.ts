@@ -32,10 +32,10 @@ export const getUnits = cache(async () => {
         where: eq(units.courseId, userProgress.activeCourseId),
         with: {
             lessons: {
-                orderBy: (lessons, {asc}) => [asc(lessons.order)],
+                orderBy: (lessons, { asc }) => [asc(lessons.order)],
                 with: {
                     challenges: {
-                        orderBy: (challenges, {asc}) => [asc(challenges.order)],
+                        orderBy: (challenges, { asc }) => [asc(challenges.order)],
                         with: {
                             challengeProgress: {
                                 where: eq(
@@ -78,11 +78,11 @@ export const getCourseById = cache(async (courseId: number) => {
     const data = await db.query.courses.findFirst({
         where: eq(courses.id, courseId),
         with: {
-            units:{
-                orderBy: (units, {asc}) => [asc(units.order)],
+            units: {
+                orderBy: (units, { asc }) => [asc(units.order)],
                 with: {
                     lessons: {
-                        orderBy: (lessons, {asc}) => [asc(lessons.order)],
+                        orderBy: (lessons, { asc }) => [asc(lessons.order)],
                     },
                 },
             },
@@ -189,7 +189,6 @@ export const getLesson = cache(async (id?: number) => {
     return { ...data, challenges: normalizedData };
 });
 
-
 export const getLessonPercentage = cache(async () => {
     const courseProgress = await getCourseProgress();
 
@@ -214,8 +213,8 @@ export const getLessonPercentage = cache(async () => {
 
 
 const DAY_IN_MS = 86_400_000;
-export const getUserSubscription = cache (async()=>{
-    const {userId} = await auth();
+export const getUserSubscription = cache(async () => {
+    const { userId } = await auth();
 
     if (!userId) return null;
 
@@ -225,33 +224,33 @@ export const getUserSubscription = cache (async()=>{
 
     if (!data) return null;
 
-    const isActive = 
+    const isActive =
         data.stripePriceId &&
-        data.stripeCurrentPeriodEnd?.getTime()!+ DAY_IN_MS > Date.now();
+        data.stripeCurrentPeriodEnd?.getTime()! + DAY_IN_MS > Date.now();
 
-        return {
-            ... data,
-            isActive: !!isActive,
-        };
+    return {
+        ...data,
+        isActive: !!isActive,
+    };
 });
 
-export const getTopTenUsers = cache ( async () => {
+export const getTopTenUsers = cache(async () => {
 
-    const {userId} = await auth();
+    const { userId } = await auth();
 
-    if (!userId){
+    if (!userId) {
         return [];
     }
 
     const data = await db.query.userProgress.findMany({
-        orderBy: (userProgress, {desc}) => [desc(userProgress.points)],
+        orderBy: (userProgress, { desc }) => [desc(userProgress.points)],
         limit: 10,
         columns: {
-            userId:true,
+            userId: true,
             userName: true,
             userImageSrc: true,
             points: true,
         },
-    }); 
+    });
     return data;
 });
