@@ -20,6 +20,11 @@ const main = async () => {
         await db.delete(schema.challengeProgress);
         await db.delete(schema.userSubscription);
 
+        // Delete test-related data
+        await db.delete(schema.testOptions);
+        await db.delete(schema.testQuestions);
+        await db.delete(schema.tests);
+
         await db.insert(schema.courses).values([
             {
                 id: 1,
@@ -310,10 +315,649 @@ const main = async () => {
 
         ]);
 
+        // Add test demo data
+        await db.insert(schema.tests).values([
+            {
+                id: 1,
+                title: "English Grammar Test",
+                imageSrc: "/grammar-test.svg",
+                duration: 30, // 30 minutes
+                createdAt: new Date(),
+            },
+        ]);
 
+        // Add test questions
+        await db.insert(schema.testQuestions).values([
+            {
+                id: 1,
+                testId: 1,
+                text: "Which of the following is a correct sentence?",
+                order: 1,
+            },
+            {
+                id: 2,
+                testId: 1,
+                text: "Choose the correct form of the verb:",
+                order: 2,
+            },
+            {
+                id: 3,
+                testId: 1,
+                text: "What is the plural form of 'child'?",
+                order: 3,
+            },
+            {
+                id: 4,
+                testId: 1,
+                text: "Which sentence uses the correct article?",
+                order: 4,
+            },
+            {
+                id: 5,
+                testId: 1,
+                text: "Identify the correct comparative form:",
+                order: 5,
+            },
+            {
+                id: 6,
+                testId: 1,
+                text: "Choose the correct preposition:",
+                order: 6,
+            },
+            {
+                id: 7,
+                testId: 1,
+                text: "Which sentence has the correct subject-verb agreement?",
+                order: 7,
+            },
+            {
+                id: 8,
+                testId: 1,
+                text: "Identify the correct past tense form:",
+                order: 8,
+            },
+            {
+                id: 9,
+                testId: 1,
+                text: "Choose the correct pronoun:",
+                order: 9,
+            },
+            {
+                id: 10,
+                testId: 1,
+                text: "Which sentence uses the correct conjunction?",
+                order: 10,
+            },
+            {
+                id: 11,
+                testId: 1,
+                text: "Identify the sentence with correct punctuation:",
+                order: 11,
+            },
+            {
+                id: 12,
+                testId: 1,
+                text: "Choose the correct modal verb:",
+                order: 12,
+            },
+            {
+                id: 13,
+                testId: 1,
+                text: "Which word is a synonym for 'happy'?",
+                order: 13,
+            },
+            {
+                id: 14,
+                testId: 1,
+                text: "Identify the correct passive voice sentence:",
+                order: 14,
+            },
+            {
+                id: 15,
+                testId: 1,
+                text: "Choose the correct conditional form:",
+                order: 15,
+            },
+            {
+                id: 16,
+                testId: 1,
+                text: "Which sentence uses the present perfect tense correctly?",
+                order: 16,
+            },
+            {
+                id: 17,
+                testId: 1,
+                text: "Identify the correct order of adjectives:",
+                order: 17,
+            },
+            {
+                id: 18,
+                testId: 1,
+                text: "Choose the correct phrasal verb:",
+                order: 18,
+            },
+            {
+                id: 19,
+                testId: 1,
+                text: "Which sentence contains a gerund?",
+                order: 19,
+            },
+            {
+                id: 20,
+                testId: 1,
+                text: "Identify the correct reported speech:",
+                order: 20,
+            },
+            {
+                id: 21,
+                testId: 1,
+                text: "Choose the correct relative pronoun:",
+                order: 21,
+            },
+            {
+                id: 22,
+                testId: 1,
+                text: "Which sentence uses articles correctly?",
+                order: 22,
+            },
+            {
+                id: 23,
+                testId: 1,
+                text: "Identify the correct future tense form:",
+                order: 23,
+            },
+            {
+                id: 24,
+                testId: 1,
+                text: "Choose the correct quantifier:",
+                order: 24,
+            },
+            {
+                id: 25,
+                testId: 1,
+                text: "Which sentence has the correct word order?",
+                order: 25,
+            },
+        ]);
 
-
-
+        // Add test options
+        await db.insert(schema.testOptions).values([
+            // Options for question 1
+            {
+                id: 1,
+                questionId: 1,
+                text: "She don't like coffee.",
+                isCorrect: false,
+            },
+            {
+                id: 2,
+                questionId: 1,
+                text: "She doesn't like coffee.",
+                isCorrect: true,
+            },
+            {
+                id: 3,
+                questionId: 1,
+                text: "She not like coffee.",
+                isCorrect: false,
+            },
+            // Options for question 2
+            {
+                id: 4,
+                questionId: 2,
+                text: "I have went to the store yesterday.",
+                isCorrect: false,
+            },
+            {
+                id: 5,
+                questionId: 2,
+                text: "I went to the store yesterday.",
+                isCorrect: true,
+            },
+            {
+                id: 6,
+                questionId: 2,
+                text: "I have gone to the store yesterday.",
+                isCorrect: false,
+            },
+            // Question 3
+            {
+                id: 7,
+                questionId: 3,
+                text: "Childs",
+                isCorrect: false,
+            },
+            {
+                id: 8,
+                questionId: 3,
+                text: "Children",
+                isCorrect: true,
+            },
+            {
+                id: 9,
+                questionId: 3,
+                text: "Childrens",
+                isCorrect: false,
+            },
+            // Question 4
+            {
+                id: 10,
+                questionId: 4,
+                text: "I saw a elephant at the zoo.",
+                isCorrect: false,
+            },
+            {
+                id: 11,
+                questionId: 4,
+                text: "I saw an elephant at the zoo.",
+                isCorrect: true,
+            },
+            {
+                id: 12,
+                questionId: 4,
+                text: "I saw elephant at the zoo.",
+                isCorrect: false,
+            },
+            // Question 5
+            {
+                id: 13,
+                questionId: 5,
+                text: "This building is more taller than that one.",
+                isCorrect: false,
+            },
+            {
+                id: 14,
+                questionId: 5,
+                text: "This building is taller than that one.",
+                isCorrect: true,
+            },
+            {
+                id: 15,
+                questionId: 5,
+                text: "This building is tallest than that one.",
+                isCorrect: false,
+            },
+            // Question 6
+            {
+                id: 16,
+                questionId: 6,
+                text: "The book is in the table.",
+                isCorrect: false,
+            },
+            {
+                id: 17,
+                questionId: 6,
+                text: "The book is on the table.",
+                isCorrect: true,
+            },
+            {
+                id: 18,
+                questionId: 6,
+                text: "The book is at the table.",
+                isCorrect: false,
+            },
+            // Question 7
+            {
+                id: 19,
+                questionId: 7,
+                text: "The team are playing well.",
+                isCorrect: false,
+            },
+            {
+                id: 20,
+                questionId: 7,
+                text: "The team is playing well.",
+                isCorrect: true,
+            },
+            {
+                id: 21,
+                questionId: 7,
+                text: "The team be playing well.",
+                isCorrect: false,
+            },
+            // Question 8
+            {
+                id: 22,
+                questionId: 8,
+                text: "I teached English last year.",
+                isCorrect: false,
+            },
+            {
+                id: 23,
+                questionId: 8,
+                text: "I taught English last year.",
+                isCorrect: true,
+            },
+            {
+                id: 24,
+                questionId: 8,
+                text: "I have teach English last year.",
+                isCorrect: false,
+            },
+            // Question 9
+            {
+                id: 25,
+                questionId: 9,
+                text: "This is she book.",
+                isCorrect: false,
+            },
+            {
+                id: 26,
+                questionId: 9,
+                text: "This is her book.",
+                isCorrect: true,
+            },
+            {
+                id: 27,
+                questionId: 9,
+                text: "This is hers book.",
+                isCorrect: false,
+            },
+            // Question 10
+            {
+                id: 28,
+                questionId: 10,
+                text: "I like tea but I don't like coffee.",
+                isCorrect: true,
+            },
+            {
+                id: 29,
+                questionId: 10,
+                text: "I like tea and I don't like coffee.",
+                isCorrect: false,
+            },
+            {
+                id: 30,
+                questionId: 10,
+                text: "I like tea so I don't like coffee.",
+                isCorrect: false,
+            },
+            // Question 11
+            {
+                id: 31,
+                questionId: 11,
+                text: "Where are you going.",
+                isCorrect: false,
+            },
+            {
+                id: 32,
+                questionId: 11,
+                text: "Where are you going?",
+                isCorrect: true,
+            },
+            {
+                id: 33,
+                questionId: 11,
+                text: "Where are you going!",
+                isCorrect: false,
+            },
+            // Question 12
+            {
+                id: 34,
+                questionId: 12,
+                text: "You must to study harder.",
+                isCorrect: false,
+            },
+            {
+                id: 35,
+                questionId: 12,
+                text: "You must study harder.",
+                isCorrect: true,
+            },
+            {
+                id: 36,
+                questionId: 12,
+                text: "You should must study harder.",
+                isCorrect: false,
+            },
+            // Question 13
+            {
+                id: 37,
+                questionId: 13,
+                text: "Sad",
+                isCorrect: false,
+            },
+            {
+                id: 38,
+                questionId: 13,
+                text: "Joyful",
+                isCorrect: true,
+            },
+            {
+                id: 39,
+                questionId: 13,
+                text: "Angry",
+                isCorrect: false,
+            },
+            // Question 14
+            {
+                id: 40,
+                questionId: 14,
+                text: "John wrote the letter.",
+                isCorrect: false,
+            },
+            {
+                id: 41,
+                questionId: 14,
+                text: "The letter was written by John.",
+                isCorrect: true,
+            },
+            {
+                id: 42,
+                questionId: 14,
+                text: "The letter is writing by John.",
+                isCorrect: false,
+            },
+            // Question 15
+            {
+                id: 43,
+                questionId: 15,
+                text: "If I will have time, I will call you.",
+                isCorrect: false,
+            },
+            {
+                id: 44,
+                questionId: 15,
+                text: "If I have time, I will call you.",
+                isCorrect: true,
+            },
+            {
+                id: 45,
+                questionId: 15,
+                text: "If I have time, I would call you.",
+                isCorrect: false,
+            },
+            // Question 16
+            {
+                id: 46,
+                questionId: 16,
+                text: "I have finished my homework yesterday.",
+                isCorrect: false,
+            },
+            {
+                id: 47,
+                questionId: 16,
+                text: "I have finished my homework.",
+                isCorrect: true,
+            },
+            {
+                id: 48,
+                questionId: 16,
+                text: "I have finish my homework.",
+                isCorrect: false,
+            },
+            // Question 17
+            {
+                id: 49,
+                questionId: 17,
+                text: "A red big car",
+                isCorrect: false,
+            },
+            {
+                id: 50,
+                questionId: 17,
+                text: "A big red car",
+                isCorrect: true,
+            },
+            {
+                id: 51,
+                questionId: 17,
+                text: "A car red big",
+                isCorrect: false,
+            },
+            // Question 18
+            {
+                id: 52,
+                questionId: 18,
+                text: "I'm looking after my sister's children.",
+                isCorrect: true,
+            },
+            {
+                id: 53,
+                questionId: 18,
+                text: "I'm looking my sister's children.",
+                isCorrect: false,
+            },
+            {
+                id: 54,
+                questionId: 18,
+                text: "I'm looking at my sister's children.",
+                isCorrect: false,
+            },
+            // Question 19
+            {
+                id: 55,
+                questionId: 19,
+                text: "I like swim in the ocean.",
+                isCorrect: false,
+            },
+            {
+                id: 56,
+                questionId: 19,
+                text: "I like swimming in the ocean.",
+                isCorrect: true,
+            },
+            {
+                id: 57,
+                questionId: 19,
+                text: "I like to swim in the ocean.",
+                isCorrect: false,
+            },
+            // Question 20
+            {
+                id: 58,
+                questionId: 20,
+                text: "She said, 'I am happy.'",
+                isCorrect: false,
+            },
+            {
+                id: 59,
+                questionId: 20,
+                text: "She said that she was happy.",
+                isCorrect: true,
+            },
+            {
+                id: 60,
+                questionId: 20,
+                text: "She said that she is happy.",
+                isCorrect: false,
+            },
+            // Question 21
+            {
+                id: 61,
+                questionId: 21,
+                text: "The man which lives next door is friendly.",
+                isCorrect: false,
+            },
+            {
+                id: 62,
+                questionId: 21,
+                text: "The man who lives next door is friendly.",
+                isCorrect: true,
+            },
+            {
+                id: 63,
+                questionId: 21,
+                text: "The man whose lives next door is friendly.",
+                isCorrect: false,
+            },
+            // Question 22
+            {
+                id: 64,
+                questionId: 22,
+                text: "I need a umbrella because it's raining.",
+                isCorrect: false,
+            },
+            {
+                id: 65,
+                questionId: 22,
+                text: "I need an umbrella because it's raining.",
+                isCorrect: true,
+            },
+            {
+                id: 66,
+                questionId: 22,
+                text: "I need umbrella because it's raining.",
+                isCorrect: false,
+            },
+            // Question 23
+            {
+                id: 67,
+                questionId: 23,
+                text: "I will going to the party tomorrow.",
+                isCorrect: false,
+            },
+            {
+                id: 68,
+                questionId: 23,
+                text: "I will go to the party tomorrow.",
+                isCorrect: true,
+            },
+            {
+                id: 69,
+                questionId: 23,
+                text: "I go to the party tomorrow.",
+                isCorrect: false,
+            },
+            // Question 24
+            {
+                id: 70,
+                questionId: 24,
+                text: "There is few water in the bottle.",
+                isCorrect: false,
+            },
+            {
+                id: 71,
+                questionId: 24,
+                text: "There is a little water in the bottle.",
+                isCorrect: true,
+            },
+            {
+                id: 72,
+                questionId: 24,
+                text: "There is little water in the bottle.",
+                isCorrect: false,
+            },
+            // Question 25
+            {
+                id: 73,
+                questionId: 25,
+                text: "Always she arrives early.",
+                isCorrect: false,
+            },
+            {
+                id: 74,
+                questionId: 25,
+                text: "She always arrives early.",
+                isCorrect: true,
+            },
+            {
+                id: 75,
+                questionId: 25,
+                text: "She arrives always early.",
+                isCorrect: false,
+            },
+        ]);
 
         console.log("Seeding finished");
     }

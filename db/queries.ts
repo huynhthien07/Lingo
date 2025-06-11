@@ -1,5 +1,5 @@
 import db from "@/db/drizzle";
-import { challengeProgress, courses, lessons, units, userProgress, userSubscription } from "@/db/schema";
+import { challengeProgress, courses, lessons, units, userProgress, userSubscription, tests } from "@/db/schema";
 import { auth } from "@clerk/nextjs/server";
 import { eq } from "drizzle-orm";
 import { cache } from "react";
@@ -254,3 +254,37 @@ export const getTopTenUsers = cache(async () => {
     });
     return data;
 });
+
+export const getTests = async () => {
+    try {
+        const tests = await db.query.tests.findMany({
+            orderBy: (tests, { asc }) => [asc(tests.title)],
+        });
+
+        return tests;
+    } catch (error) {
+        console.error(error);
+        return [];
+    }
+};
+
+export const getTest = async (id: number) => {
+    try {
+        const test = await db.query.tests.findFirst({
+            where: eq(tests.id, id),
+            with: {
+                questions: {
+                    orderBy: (questions, { asc }) => [asc(questions.order)],
+                    with: {
+                        options: true,
+                    },
+                },
+            },
+        });
+
+        return test;
+    } catch (error) {
+        console.error(error);
+        return null;
+    }
+};
