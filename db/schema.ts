@@ -118,3 +118,44 @@ export const userSubscription = pgTable("user_subscription", {
     stripePriceId: text("stripe_price_id").notNull(),
     stripeCurrentPeriodEnd: timestamp("stripe_current_period_end").notNull(),
 });
+
+export const tests = pgTable("tests", {
+    id: serial("id").primaryKey(),
+    title: text("title").notNull(),
+    imageSrc: text("image_src").notNull(),
+    duration: integer("duration").notNull().default(30), // Duration in minutes
+    createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const testsRelations = relations(tests, ({ many }) => ({
+    questions: many(testQuestions),
+}));
+
+export const testQuestions = pgTable("test_questions", {
+    id: serial("id").primaryKey(),
+    testId: integer("test_id").references(() => tests.id, { onDelete: "cascade" }),
+    text: text("text").notNull(),
+    order: integer("order").notNull(),
+});
+
+export const testQuestionsRelations = relations(testQuestions, ({ one, many }) => ({
+    test: one(tests, {
+        fields: [testQuestions.testId],
+        references: [tests.id],
+    }),
+    options: many(testOptions),
+}));
+
+export const testOptions = pgTable("test_options", {
+    id: serial("id").primaryKey(),
+    questionId: integer("question_id").references(() => testQuestions.id, { onDelete: "cascade" }),
+    text: text("text").notNull(),
+    isCorrect: boolean("is_correct").notNull().default(false),
+});
+
+export const testOptionsRelations = relations(testOptions, ({ one }) => ({
+    question: one(testQuestions, {
+        fields: [testOptions.questionId],
+        references: [testQuestions.id],
+    }),
+}));
