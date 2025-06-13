@@ -959,6 +959,90 @@ const main = async () => {
             },
         ]);
 
+        // Add vocabulary topics
+        await db.insert(schema.vocabularyTopics).values([
+            {
+                id: 1,
+                title: "Technology",
+                description: "Essential technology vocabulary",
+                imageSrc: "/technology.svg", // You'll need to add this image
+                createdAt: new Date(),
+            },
+            {
+                id: 2,
+                title: "Business",
+                description: "Common business terminology",
+                imageSrc: "/business.svg", // You'll need to add this image
+                createdAt: new Date(),
+            },
+            {
+                id: 3,
+                title: "Science",
+                description: "Scientific terms and concepts",
+                imageSrc: "/science.svg", // You'll need to add this image
+                createdAt: new Date(),
+            },
+            {
+                id: 4,
+                title: "Travel",
+                description: "Essential travel vocabulary",
+                imageSrc: "/travel.svg", // You'll need to add this image
+                createdAt: new Date(),
+            },
+        ]);
+
+        // Add technology vocabulary words
+        await db.insert(schema.vocabularyWords).values([
+            { id: 1, topicId: 1, word: "algorithm", vietnameseMeaning: "thuật toán", createdAt: new Date() },
+            { id: 2, topicId: 1, word: "bandwidth", vietnameseMeaning: "băng thông", createdAt: new Date() },
+            { id: 3, topicId: 1, word: "cloud", vietnameseMeaning: "đám mây", createdAt: new Date() },
+            { id: 4, topicId: 1, word: "database", vietnameseMeaning: "cơ sở dữ liệu", createdAt: new Date() },
+            { id: 5, topicId: 1, word: "encryption", vietnameseMeaning: "mã hóa", createdAt: new Date() },
+            { id: 6, topicId: 1, word: "firewall", vietnameseMeaning: "tường lửa", createdAt: new Date() },
+            { id: 7, topicId: 1, word: "hardware", vietnameseMeaning: "phần cứng", createdAt: new Date() },
+            { id: 8, topicId: 1, word: "interface", vietnameseMeaning: "giao diện", createdAt: new Date() },
+            { id: 9, topicId: 1, word: "javascript", vietnameseMeaning: "ngôn ngữ javascript", createdAt: new Date() },
+            { id: 10, topicId: 1, word: "kernel", vietnameseMeaning: "nhân hệ thống", createdAt: new Date() },
+            { id: 11, topicId: 1, word: "latency", vietnameseMeaning: "độ trễ", createdAt: new Date() },
+            { id: 12, topicId: 1, word: "malware", vietnameseMeaning: "phần mềm độc hại", createdAt: new Date() },
+        ]);
+
+        // Add business vocabulary words
+        await db.insert(schema.vocabularyWords).values([
+            { id: 13, topicId: 2, word: "acquisition", vietnameseMeaning: "sự mua lại", createdAt: new Date() },
+            { id: 14, topicId: 2, word: "budget", vietnameseMeaning: "ngân sách", createdAt: new Date() },
+            { id: 15, topicId: 2, word: "corporation", vietnameseMeaning: "tập đoàn", createdAt: new Date() },
+            { id: 16, topicId: 2, word: "dividend", vietnameseMeaning: "cổ tức", createdAt: new Date() },
+            { id: 17, topicId: 2, word: "entrepreneur", vietnameseMeaning: "doanh nhân", createdAt: new Date() },
+            { id: 18, topicId: 2, word: "franchise", vietnameseMeaning: "nhượng quyền", createdAt: new Date() },
+            { id: 19, topicId: 2, word: "investment", vietnameseMeaning: "đầu tư", createdAt: new Date() },
+            { id: 20, topicId: 2, word: "liability", vietnameseMeaning: "trách nhiệm pháp lý", createdAt: new Date() },
+        ]);
+
+        // Add science vocabulary words
+        await db.insert(schema.vocabularyWords).values([
+            { id: 21, topicId: 3, word: "atom", vietnameseMeaning: "nguyên tử", createdAt: new Date() },
+            { id: 22, topicId: 3, word: "biology", vietnameseMeaning: "sinh học", createdAt: new Date() },
+            { id: 23, topicId: 3, word: "chemistry", vietnameseMeaning: "hóa học", createdAt: new Date() },
+            { id: 24, topicId: 3, word: "ecosystem", vietnameseMeaning: "hệ sinh thái", createdAt: new Date() },
+            { id: 25, topicId: 3, word: "gravity", vietnameseMeaning: "trọng lực", createdAt: new Date() },
+            { id: 26, topicId: 3, word: "hypothesis", vietnameseMeaning: "giả thuyết", createdAt: new Date() },
+            { id: 27, topicId: 3, word: "molecule", vietnameseMeaning: "phân tử", createdAt: new Date() },
+            { id: 28, topicId: 3, word: "physics", vietnameseMeaning: "vật lý học", createdAt: new Date() },
+        ]);
+
+        // Add travel vocabulary words
+        await db.insert(schema.vocabularyWords).values([
+            { id: 29, topicId: 4, word: "accommodation", vietnameseMeaning: "chỗ ở", createdAt: new Date() },
+            { id: 30, topicId: 4, word: "destination", vietnameseMeaning: "điểm đến", createdAt: new Date() },
+            { id: 31, topicId: 4, word: "itinerary", vietnameseMeaning: "lịch trình", createdAt: new Date() },
+            { id: 32, topicId: 4, word: "luggage", vietnameseMeaning: "hành lý", createdAt: new Date() },
+            { id: 33, topicId: 4, word: "passport", vietnameseMeaning: "hộ chiếu", createdAt: new Date() },
+            { id: 34, topicId: 4, word: "reservation", vietnameseMeaning: "đặt chỗ", createdAt: new Date() },
+            { id: 35, topicId: 4, word: "tourism", vietnameseMeaning: "du lịch", createdAt: new Date() },
+            { id: 36, topicId: 4, word: "visa", vietnameseMeaning: "thị thực", createdAt: new Date() },
+        ]);
+
         console.log("Seeding finished");
     }
     catch (error) {
