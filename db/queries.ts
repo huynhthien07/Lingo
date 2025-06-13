@@ -1,5 +1,5 @@
 import db from "@/db/drizzle";
-import { challengeProgress, courses, lessons, units, userProgress, userSubscription, tests } from "@/db/schema";
+import { challengeProgress, courses, lessons, units, userProgress, userSubscription, tests, vocabularyTopics, vocabularyWords } from "@/db/schema";
 import { auth } from "@clerk/nextjs/server";
 import { eq } from "drizzle-orm";
 import { cache } from "react";
@@ -286,5 +286,45 @@ export const getTest = async (id: number) => {
     } catch (error) {
         console.error(error);
         return null;
+    }
+};
+
+export const getVocabularyTopics = async () => {
+    try {
+        const topics = await db.query.vocabularyTopics.findMany({
+            orderBy: (topics, { asc }) => [asc(topics.title)],
+        });
+
+        return topics;
+    } catch (error) {
+        console.error("Failed to fetch vocabulary topics:", error);
+        return [];
+    }
+};
+
+export const getVocabularyTopic = async (id: number) => {
+    try {
+        const topic = await db.query.vocabularyTopics.findFirst({
+            where: eq(vocabularyTopics.id, id),
+        });
+
+        return topic;
+    } catch (error) {
+        console.error(`Failed to fetch vocabulary topic ${id}:`, error);
+        return null;
+    }
+};
+
+export const getVocabularyWords = async (topicId: number) => {
+    try {
+        const words = await db.query.vocabularyWords.findMany({
+            where: eq(vocabularyWords.topicId, topicId),
+            orderBy: (words, { asc }) => [asc(words.word)],
+        });
+
+        return words;
+    } catch (error) {
+        console.error(`Failed to fetch vocabulary words for topic ${topicId}:`, error);
+        return [];
     }
 };

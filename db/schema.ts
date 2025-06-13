@@ -159,3 +159,19 @@ export const testOptionsRelations = relations(testOptions, ({ one }) => ({
         references: [testQuestions.id],
     }),
 }));
+
+export const vocabularyTopics = pgTable("vocabulary_topics", {
+    id: serial("id").primaryKey(),
+    title: text("title").notNull(),
+    description: text("description"),
+    imageSrc: text("image_src").notNull(),
+    createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const vocabularyWords = pgTable("vocabulary_words", {
+    id: serial("id").primaryKey(),
+    word: text("word").notNull(),
+    topicId: integer("topic_id").references(() => vocabularyTopics.id, { onDelete: "cascade" }),
+    vietnameseMeaning: text("vietnamese_meaning"),
+    createdAt: timestamp("created_at").defaultNow(),
+});
