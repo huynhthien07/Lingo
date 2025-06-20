@@ -19,6 +19,23 @@ export const getUserProgress = cache(async () => {
     return data;
 });
 
+export const isUserBlocked = cache(async (userId?: string) => {
+    const currentUserId = userId || (await auth()).userId;
+
+    if (!currentUserId) {
+        return false;
+    }
+
+    const data = await db.query.userProgress.findFirst({
+        where: eq(userProgress.userId, currentUserId),
+        columns: {
+            blocked: true,
+        },
+    });
+
+    return data?.blocked || false;
+});
+
 export const getUnits = cache(async () => {
     const { userId } = await auth();
     const userProgress = await getUserProgress();
