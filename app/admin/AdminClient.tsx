@@ -17,6 +17,8 @@ import { LessonList } from "./lesson/list";
 import { UnitCreate } from "./unit/create";
 import { UnitEdit } from "./unit/edit";
 import { UnitList } from "./unit/list";
+import { UserEdit } from "./user/edit";
+import { UserList } from "./user/list";
 import { StatisticsList } from "./statistics/list";
 
 const dataProvider = simpleRestProvider("/api");
@@ -59,6 +61,13 @@ const App = () => {
         edit={ChallengeOptionEdit}
         recordRepresentation="text"
         options={{ label: "Challenge Options" }}
+      />
+      <Resource
+        name="users"
+        list={UserList}
+        edit={UserEdit}
+        recordRepresentation="userName"
+        options={{ label: "Users" }}
       />
       <Resource
         name="statistics"
