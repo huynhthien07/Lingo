@@ -17,50 +17,56 @@ import { LessonList } from "./lesson/list";
 import { UnitCreate } from "./unit/create";
 import { UnitEdit } from "./unit/edit";
 import { UnitList } from "./unit/list";
+import { StatisticsList } from "./statistics/list";
 
 const dataProvider = simpleRestProvider("/api");
 
-const App = ()=>{
-    return (
-        <Admin dataProvider={dataProvider}>
-            <Resource
-              name = "courses"
-              list = {CourseList}
-              create = {CourseCreate}
-              edit = {CourseEdit}
-              recordRepresentation="title"
-            />
-            <Resource
-              name = "units"
-              list = {UnitList}
-              create = {UnitCreate}
-              edit = {UnitEdit}
-              recordRepresentation="title"
-            />
-            <Resource
-              name = "lessons"
-              list = {LessonList}
-              create = {LessonCreate}
-              edit = {LessonEdit}
-              recordRepresentation="title"
-            />
-            <Resource
-              name = "challenges"
-              list = {ChallengeList}
-              create = {ChallengeCreate}
-              edit = {ChallengeEdit}
-              recordRepresentation="question"
-            />
-            <Resource
-              name = "challengeOptions"
-              list = {ChallengeOptionList}
-              create = {ChallengeOptionCreate}
-              edit = {ChallengeOptionEdit}
-              recordRepresentation="text"
-              options = {{label: "Challenge Options"}}
-            />
-        </Admin>
-    );
+const App = () => {
+  return (
+    <Admin dataProvider={dataProvider}>
+      <Resource
+        name="courses"
+        list={CourseList}
+        create={CourseCreate}
+        edit={CourseEdit}
+        recordRepresentation="title"
+      />
+      <Resource
+        name="units"
+        list={UnitList}
+        create={UnitCreate}
+        edit={UnitEdit}
+        recordRepresentation="title"
+      />
+      <Resource
+        name="lessons"
+        list={LessonList}
+        create={LessonCreate}
+        edit={LessonEdit}
+        recordRepresentation="title"
+      />
+      <Resource
+        name="challenges"
+        list={ChallengeList}
+        create={ChallengeCreate}
+        edit={ChallengeEdit}
+        recordRepresentation="question"
+      />
+      <Resource
+        name="challengeOptions"
+        list={ChallengeOptionList}
+        create={ChallengeOptionCreate}
+        edit={ChallengeOptionEdit}
+        recordRepresentation="text"
+        options={{ label: "Challenge Options" }}
+      />
+      <Resource
+        name="statistics"
+        list={StatisticsList}
+        options={{ label: "Statistics" }}
+      />
+    </Admin>
+  );
 
 };
 
