@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { createTheme, ThemeProvider } from '@mui/material/styles';
+import { createTheme } from '@mui/material/styles';
 import { defaultTheme } from 'react-admin';
 
 interface ThemeContextType {
@@ -102,6 +102,10 @@ const darkTheme = createTheme({
       secondary: '#b3b3b3',
     },
     divider: '#333333',
+    action: {
+      hover: '#333333',
+      selected: '#2d2d2d',
+    },
   },
   typography: {
     ...defaultTheme.typography,
@@ -111,11 +115,26 @@ const darkTheme = createTheme({
   },
   components: {
     ...defaultTheme.components,
+    MuiCssBaseline: {
+      styleOverrides: {
+        body: {
+          backgroundColor: '#121212 !important',
+          color: '#ffffff',
+        },
+        '#root': {
+          backgroundColor: '#121212 !important',
+        },
+        html: {
+          backgroundColor: '#121212 !important',
+        },
+      },
+    },
     MuiAppBar: {
       styleOverrides: {
         root: {
-          backgroundColor: '#1e1e1e',
+          backgroundColor: '#1e1e1e !important',
           boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+          color: '#ffffff',
         },
       },
     },
@@ -176,6 +195,51 @@ const darkTheme = createTheme({
           backgroundColor: '#333333',
           color: '#ffffff',
         },
+      },
+    },
+    // Global overrides for React Admin
+    MuiContainer: {
+      styleOverrides: {
+        root: {
+          backgroundColor: '#121212 !important',
+        },
+      },
+    },
+    // Override all possible background elements
+    '.RaLayout-root': {
+      backgroundColor: '#121212 !important',
+    },
+    '.RaLayout-appFrame': {
+      backgroundColor: '#121212 !important',
+    },
+    '.RaLayout-contentWithSidebar': {
+      backgroundColor: '#121212 !important',
+    },
+    '.RaLayout-content': {
+      backgroundColor: '#121212 !important',
+    },
+    '.RaSidebar-root': {
+      backgroundColor: '#1e1e1e !important',
+    },
+    '.RaList-root': {
+      backgroundColor: '#121212 !important',
+    },
+    '.RaList-main': {
+      backgroundColor: '#1e1e1e !important',
+    },
+    '.RaDatagrid-root': {
+      backgroundColor: '#1e1e1e !important',
+    },
+    '.RaDatagrid-table': {
+      backgroundColor: '#1e1e1e !important',
+    },
+    '.RaDatagrid-headerRow': {
+      backgroundColor: '#2d2d2d !important',
+    },
+    '.RaDatagrid-row': {
+      backgroundColor: '#1e1e1e !important',
+      '&:hover': {
+        backgroundColor: '#333333 !important',
       },
     },
   },
