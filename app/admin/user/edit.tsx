@@ -8,12 +8,26 @@ import {
     NumberInput,
     ReferenceInput,
     SelectInput,
-    required
+    required,
+    useNotify,
+    useRefresh,
+    useRedirect
 } from "react-admin";
+import { useAutoRefresh } from "../hooks/useAutoRefresh";
 
 export const UserEdit = () => {
+    const { handleUpdateSuccess, handleError } = useAutoRefresh();
+
+    const onSuccess = (data: any) => {
+        handleUpdateSuccess('User', data);
+    };
+
+    const onError = (error: any) => {
+        handleError(error, 'user update');
+    };
+
     return (
-        <Edit>
+        <Edit mutationOptions={{ onSuccess, onError }}>
             <SimpleForm>
                 <TextInput
                     source="userId"

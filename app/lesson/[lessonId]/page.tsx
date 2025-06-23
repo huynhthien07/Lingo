@@ -4,15 +4,18 @@ import { getLesson, getUserProgress, getUserSubscription } from "@/db/queries";
 import { Quiz } from "../quiz";
 
 type Props = {
-    params:{
-        lessonId:number;
-    };
+    params: Promise<{
+        lessonId: string;
+    }>;
 };
 
 const LessonIdPage = async ({
     params,
-}:Props) => {
-    const lessonData = getLesson(params.lessonId);
+}: Props) => {
+    const { lessonId } = await params;
+    const lessonIdNumber = parseInt(lessonId);
+
+    const lessonData = getLesson(lessonIdNumber);
     const userProgressData = await getUserProgress();
     const userSubscriptionData = getUserSubscription();
 
@@ -40,7 +43,7 @@ const LessonIdPage = async ({
             initialLessonChallenges={lesson.challenges}
             initialHearts={userProgress.hearts}
             initialPercentage={initialPercentage}
-            userSubscription={userSubscription} 
+            userSubscription={userSubscription}
         />
     );
 }

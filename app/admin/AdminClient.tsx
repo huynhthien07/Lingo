@@ -1,8 +1,7 @@
 "use client";
 
-import simpleRestProvider from "ra-data-simple-rest";
-import { Admin, Resource, defaultTheme } from "react-admin";
-import { createTheme } from "@mui/material/styles";
+import { Admin, Resource } from "react-admin";
+import { dataProvider } from "./dataProvider";
 import { ChallengeCreate } from "./challenge/create";
 import { ChallengeEdit } from "./challenge/edit";
 import { ChallengeList } from "./challenge/list";
@@ -23,61 +22,24 @@ import { UserList } from "./user/list";
 import { StatisticsList } from "./statistics/list";
 import { CustomLayout } from "./layout/CustomLayout";
 import { Dashboard } from "./dashboard/Dashboard";
-
-// Custom theme with modern colors
-const customTheme = createTheme({
-  ...defaultTheme,
-  palette: {
-    ...defaultTheme.palette,
-    primary: {
-      main: '#1976d2',
-      light: '#42a5f5',
-      dark: '#1565c0',
-    },
-    secondary: {
-      main: '#dc004e',
-      light: '#ff5983',
-      dark: '#9a0036',
-    },
-    background: {
-      default: '#f5f5f5',
-      paper: '#ffffff',
-    },
-  },
-  typography: {
-    ...defaultTheme.typography,
-    h6: {
-      fontWeight: 600,
-    },
-  },
-  components: {
-    ...defaultTheme.components,
-    MuiAppBar: {
-      styleOverrides: {
-        root: {
-          backgroundColor: '#1976d2',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-        },
-      },
-    },
-    MuiCard: {
-      styleOverrides: {
-        root: {
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-          borderRadius: '8px',
-        },
-      },
-    },
-  },
-});
-
-const dataProvider = simpleRestProvider("/api");
+import { SearchTest } from "./debug/search-test";
+import { AdminThemeProvider, useTheme } from "./context/ThemeContext";
 
 const App = () => {
   return (
+    <AdminThemeProvider>
+      <AdminContent />
+    </AdminThemeProvider>
+  );
+};
+
+const AdminContent = () => {
+  const { currentTheme } = useTheme();
+
+  return (
     <Admin
       dataProvider={dataProvider}
-      theme={customTheme}
+      theme={currentTheme}
       layout={CustomLayout}
       dashboard={Dashboard}
       title="Lingo Admin Dashboard"
@@ -134,9 +96,13 @@ const App = () => {
         list={StatisticsList}
         options={{ label: "📊 Statistics" }}
       />
+      <Resource
+        name="search-test"
+        list={SearchTest}
+        options={{ label: "🔍 Search Test" }}
+      />
     </Admin>
   );
-
 };
 
 export default App;
