@@ -1,8 +1,8 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { Volume2 } from "lucide-react";
-import { useCallback } from "react";
+import { Volume2, Eye, EyeOff } from "lucide-react";
+import { useCallback, useState } from "react";
 import { useAudio } from "react-use";
 
 type Props = {
@@ -25,17 +25,24 @@ export const WordCard = ({
   loading,
 }: Props) => {
   // Create a consistent hook order by always using the same hooks in the same order
-  // First hook: useAudio (or its fallback)
+  // First hook: useState for flashcard functionality
+  const [showMeaning, setShowMeaning] = useState(false);
+
+  // Second hook: useAudio (or its fallback)
   const [audioElement, _, controls] = useAudio({
     src: audio && audio.length > 0 ? audio : ""
   });
 
-  // Second hook: useCallback
+  // Third hook: useCallback
   const handlePlayAudio = useCallback(() => {
     if (audio && audio.length > 0) {
       controls.play();
     }
   }, [audio, controls]);
+
+  const toggleMeaning = () => {
+    setShowMeaning(!showMeaning);
+  };
 
   return (
     <div className="border-2 rounded-xl border-b-4 p-4 lg:p-6">
@@ -50,14 +57,30 @@ export const WordCard = ({
             {phonetic}
           </span>
         )}
-        {audio && audio.length > 0 && (
-          <button
-            onClick={handlePlayAudio}
-            className="ml-auto p-2 rounded-full hover:bg-sky-100 transition"
-          >
-            <Volume2 className="h-5 w-5 text-sky-500" />
-          </button>
-        )}
+        <div className="ml-auto flex items-center gap-x-2">
+          {!loading && (meaning || vietnameseMeaning) && (
+            <button
+              onClick={toggleMeaning}
+              className="p-2 rounded-full hover:bg-purple-100 transition"
+              title={showMeaning ? "Hide meaning" : "Show meaning"}
+            >
+              {showMeaning ? (
+                <EyeOff className="h-5 w-5 text-purple-500" />
+              ) : (
+                <Eye className="h-5 w-5 text-purple-500" />
+              )}
+            </button>
+          )}
+          {audio && audio.length > 0 && (
+            <button
+              onClick={handlePlayAudio}
+              className="p-2 rounded-full hover:bg-sky-100 transition"
+              title="Play pronunciation"
+            >
+              <Volume2 className="h-5 w-5 text-sky-500" />
+            </button>
+          )}
+        </div>
       </div>
 
       {loading ? (
@@ -67,20 +90,40 @@ export const WordCard = ({
         </div>
       ) : (
         <>
-          {vietnameseMeaning && (
-            <p className="text-neutral-600 mb-2 text-base font-medium">
-              <span className="font-semibold text-green-600">Tiếng Việt:</span> {vietnameseMeaning}
-            </p>
+          {!showMeaning && (meaning || vietnameseMeaning) && (
+            <div className="text-center py-8">
+              <div className="text-gray-400 text-lg mb-2">
+                <Eye className="h-8 w-8 mx-auto mb-2" />
+              </div>
+              <p className="text-gray-500 text-sm">
+                Click the eye icon to reveal the meaning
+              </p>
+            </div>
           )}
-          {meaning && (
-            <p className="text-neutral-600 mb-2">
-              <span className="font-semibold">Meaning:</span> {meaning}
-            </p>
-          )}
-          {example && (
-            <p className="text-neutral-500 italic">
-              <span className="font-semibold not-italic">Example:</span> "{example}"
-            </p>
+
+          {(showMeaning || (!meaning && !vietnameseMeaning)) && (
+            <>
+              {vietnameseMeaning && (
+                <p className="text-neutral-600 mb-2 text-base font-medium">
+                  <span className="font-semibold text-green-600">Tiếng Việt:</span> {vietnameseMeaning}
+                </p>
+              )}
+              {meaning && (
+                <p className="text-neutral-600 mb-2">
+                  <span className="font-semibold">Meaning:</span> {meaning}
+                </p>
+              )}
+              {example && (
+                <p className="text-neutral-500 italic">
+                  <span className="font-semibold not-italic">Example:</span> "{example}"
+                </p>
+              )}
+              {!meaning && !vietnameseMeaning && !example && (
+                <p className="text-gray-500 text-center py-4">
+                  No definition available for this word
+                </p>
+              )}
+            </>
           )}
         </>
       )}

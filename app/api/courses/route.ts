@@ -17,11 +17,27 @@ export const POST = async (req: Request) => {
         return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const body = await req.json();
+    try {
+        const body = await req.json();
+        console.log("Received course data:", body);
 
-    const data = await db.insert(courses).values({
-        ...body,
-    }).returning();
+        // Remove id from body to let database auto-generate it
+        const { id, ...courseData } = body;
+        console.log("Course data after removing id:", courseData);
 
-    return NextResponse.json(data[0]);
+        const data = await db.insert(courses).values({
+            ...courseData,
+        }).returning();
+
+        return NextResponse.json(data[0]);
+    } catch (error) {
+        console.error("Error creating course:", error);
+
+        // Check if it's a duplicate key error
+        if (error instanceof Error && error.message.includes('duplicate key')) {
+            return new NextResponse("Course with this ID already exists. Please try again.", { status: 409 });
+        }
+
+        return new NextResponse("Failed to create course", { status: 500 });
+    }
 }

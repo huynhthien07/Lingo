@@ -19,8 +19,11 @@ export const POST = async (req: Request) => {
 
     const body = await req.json();
 
+    // Remove id from body to let database auto-generate it
+    const { id, ...challengeData } = body;
+
     const data = await db.insert(challenges).values({
-        ...body,
+        ...challengeData,
     }).returning();
 
     return NextResponse.json(data[0]);
