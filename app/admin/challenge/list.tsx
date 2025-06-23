@@ -15,6 +15,7 @@ import {
 } from "react-admin";
 import { Chip, Box, Typography } from "@mui/material";
 import { Quiz, VolumeUp, MenuBook, Spellcheck } from "@mui/icons-material";
+import { useAutoRefresh, useVisibilityRefresh } from "../hooks/useAutoRefresh";
 
 const challengeFilters = [
     <TextInput source="question" label="Search question" alwaysOn />,
@@ -57,6 +58,10 @@ const getTypeColor = (type: string) => {
 };
 
 export const ChallengeList = () => {
+    // Enable auto-refresh functionality
+    useAutoRefresh();
+    useVisibilityRefresh();
+
     return (
         <List
             filters={challengeFilters}

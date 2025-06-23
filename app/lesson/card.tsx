@@ -29,15 +29,20 @@ export const Card = ({
     disabled,
     type,
 }: Props) => {
-    const [audio, _, controls] = useAudio ({src:audioSrc || ""});
-    const handleClick = useCallback(()=>{
-        if (disabled) return ;
+    const [audio, _, controls] = useAudio({
+        src: audioSrc && audioSrc.length > 0 ? audioSrc : undefined
+    });
 
-        controls.play();
+    const handleClick = useCallback(() => {
+        if (disabled) return;
+
+        if (audioSrc && audioSrc.length > 0) {
+            controls.play();
+        }
         onClick();
-    },[disabled,onClick,controls]);
+    }, [disabled, onClick, controls, audioSrc]);
 
-    useKey(shortcut, handleClick, {},[handleClick]);
+    useKey(shortcut, handleClick, {}, [handleClick]);
 
     return (
         <div

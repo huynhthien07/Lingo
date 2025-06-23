@@ -28,7 +28,7 @@ export const Flashcard = ({ words, currentIndex, onNext, onPrevious }: Props) =>
   const currentWord = words[currentIndex];
 
   const [audioElement, _, controls] = useAudio({
-    src: currentWord?.audio && currentWord.audio.length > 0 ? currentWord.audio : ""
+    src: currentWord?.audio && currentWord.audio.length > 0 ? currentWord.audio : undefined
   });
 
   const handlePlayAudio = useCallback(() => {
@@ -63,7 +63,7 @@ export const Flashcard = ({ words, currentIndex, onNext, onPrevious }: Props) =>
     <div className="max-w-md mx-auto">
       {/* Always render the audio element */}
       {audioElement}
-      
+
       {/* Progress indicator */}
       <div className="mb-6">
         <div className="flex justify-between items-center mb-2">
@@ -75,7 +75,7 @@ export const Flashcard = ({ words, currentIndex, onNext, onPrevious }: Props) =>
           </span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2">
-          <div 
+          <div
             className="bg-blue-500 h-2 rounded-full transition-all duration-300"
             style={{ width: `${((currentIndex + 1) / words.length) * 100}%` }}
           />
@@ -83,7 +83,7 @@ export const Flashcard = ({ words, currentIndex, onNext, onPrevious }: Props) =>
       </div>
 
       {/* Flashcard */}
-      <div 
+      <div
         className={cn(
           "relative w-full h-80 cursor-pointer transition-transform duration-500 preserve-3d",
           isFlipped && "rotate-y-180"
@@ -92,7 +92,7 @@ export const Flashcard = ({ words, currentIndex, onNext, onPrevious }: Props) =>
         style={{ transformStyle: "preserve-3d" }}
       >
         {/* Front of card (word) */}
-        <div 
+        <div
           className={cn(
             "absolute inset-0 w-full h-full backface-hidden",
             "border-2 rounded-xl border-b-4 p-6",
@@ -118,20 +118,20 @@ export const Flashcard = ({ words, currentIndex, onNext, onPrevious }: Props) =>
               </button>
             )}
           </div>
-          
+
           {currentWord.phonetic && (
             <span className="text-blue-600 text-lg mb-4">
               {currentWord.phonetic}
             </span>
           )}
-          
+
           <p className="text-blue-600 text-sm">
             Click to reveal meaning
           </p>
         </div>
 
         {/* Back of card (meaning) */}
-        <div 
+        <div
           className={cn(
             "absolute inset-0 w-full h-full backface-hidden rotate-y-180",
             "border-2 rounded-xl border-b-4 p-6",
@@ -152,28 +152,28 @@ export const Flashcard = ({ words, currentIndex, onNext, onPrevious }: Props) =>
                   {currentWord.word}
                 </h3>
               </div>
-              
+
               {currentWord.vietnameseMeaning && (
                 <p className="text-green-700 mb-3 text-center font-medium">
                   <span className="font-semibold">Tiếng Việt:</span><br />
                   {currentWord.vietnameseMeaning}
                 </p>
               )}
-              
+
               {currentWord.meaning && (
                 <p className="text-green-600 mb-3 text-center">
                   <span className="font-semibold">Meaning:</span><br />
                   {currentWord.meaning}
                 </p>
               )}
-              
+
               {currentWord.example && (
                 <p className="text-green-500 italic text-center text-sm">
                   <span className="font-semibold not-italic">Example:</span><br />
                   "{currentWord.example}"
                 </p>
               )}
-              
+
               {!currentWord.meaning && !currentWord.vietnameseMeaning && !currentWord.example && (
                 <p className="text-green-600 text-center">
                   No definition available

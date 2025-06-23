@@ -30,7 +30,7 @@ export const WordCard = ({
 
   // Second hook: useAudio (or its fallback)
   const [audioElement, _, controls] = useAudio({
-    src: audio && audio.length > 0 ? audio : ""
+    src: audio && audio.length > 0 ? audio : undefined
   });
 
   // Third hook: useCallback

@@ -6,9 +6,15 @@ import {
     FunctionField,
     CreateButton,
     ExportButton,
-    TopToolbar
+    TopToolbar,
+    TextInput
 } from "react-admin";
 import { Chip, Avatar } from "@mui/material";
+import { useAutoRefresh, useVisibilityRefresh } from "../hooks/useAutoRefresh";
+
+const courseFilters = [
+    <TextInput source="title" label="Search by title" alwaysOn />,
+];
 
 const CourseListActions = () => (
     <TopToolbar>
@@ -18,8 +24,13 @@ const CourseListActions = () => (
 );
 
 export const CourseList = () => {
+    // Enable auto-refresh functionality
+    useAutoRefresh();
+    useVisibilityRefresh();
+
     return (
         <List
+            filters={courseFilters}
             actions={<CourseListActions />}
             sx={{
                 '& .RaList-main': {

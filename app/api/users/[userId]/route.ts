@@ -6,7 +6,7 @@ import { NextResponse } from 'next/server';
 
 export const GET = async (
     req: Request,
-    { params }: { params: { userId: string } },
+    { params }: { params: Promise<{ userId: string }> },
 ) => {
     if (!await getIsAdmin()) {
         return new NextResponse("Unauthorized", { status: 401 });
@@ -14,7 +14,7 @@ export const GET = async (
 
     try {
         const data = await db.query.userProgress.findFirst({
-            where: eq(userProgress.userId, params.userId),
+            where: eq(userProgress.userId, (await params).userId),
             with: {
                 activeCourse: true,
             },
@@ -39,7 +39,7 @@ export const GET = async (
 
 export const PUT = async (
     req: Request,
-    { params }: { params: { userId: string } },
+    { params }: { params: Promise<{ userId: string }> },
 ) => {
     if (!await getIsAdmin()) {
         return new NextResponse("Unauthorized", { status: 401 });
@@ -64,7 +64,7 @@ export const PUT = async (
 
         const data = await db.update(userProgress)
             .set(updateData)
-            .where(eq(userProgress.userId, params.userId))
+            .where(eq(userProgress.userId, (await params).userId))
             .returning();
 
         if (data.length === 0) {
