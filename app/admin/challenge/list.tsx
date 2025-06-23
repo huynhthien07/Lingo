@@ -11,7 +11,8 @@ import {
     TopToolbar,
     TextInput,
     SelectInput,
-    ReferenceInput
+    ReferenceInput,
+    Pagination
 } from "react-admin";
 import { Chip, Box, Typography } from "@mui/material";
 import { Quiz, VolumeUp, MenuBook, Spellcheck } from "@mui/icons-material";
@@ -29,6 +30,15 @@ const challengeFilters = [
         <SelectInput optionText="title" />
     </ReferenceInput>,
 ];
+
+// Custom pagination component with per-page options
+const ChallengePagination = () => (
+    <Pagination
+        rowsPerPageOptions={[10, 25, 50, 100]}
+        showFirstButton
+        showLastButton
+    />
+);
 
 const ChallengeListActions = () => (
     <TopToolbar>
@@ -66,11 +76,20 @@ export const ChallengeList = () => {
         <List
             filters={challengeFilters}
             actions={<ChallengeListActions />}
+            perPage={25}
+            pagination={<ChallengePagination />}
             sx={{
                 '& .RaList-main': {
                     backgroundColor: 'white',
                     borderRadius: 2,
                     boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                },
+                '& .RaList-pagination': {
+                    display: 'flex !important',
+                    visibility: 'visible !important',
+                    backgroundColor: 'white',
+                    padding: '16px',
+                    borderTop: '1px solid #e0e0e0',
                 },
             }}
         >

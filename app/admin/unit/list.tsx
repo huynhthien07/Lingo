@@ -39,7 +39,6 @@ export const UnitList = () => {
             actions={<UnitListActions />}
             sx={{
                 '& .RaList-main': {
-                    backgroundColor: 'white',
                     borderRadius: 2,
                     boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
                 },
@@ -49,14 +48,9 @@ export const UnitList = () => {
                 rowClick="edit"
                 sx={{
                     '& .RaDatagrid-headerRow': {
-                        backgroundColor: '#f8fafc',
                         '& .RaDatagrid-headerCell': {
                             fontWeight: 600,
-                            color: '#374151',
                         },
-                    },
-                    '& .RaDatagrid-row:hover': {
-                        backgroundColor: '#f8fafc',
                     },
                 }}
             >

@@ -10,7 +10,8 @@ import {
     SelectInput,
     CreateButton,
     ExportButton,
-    TopToolbar
+    TopToolbar,
+    Pagination
 } from "react-admin";
 import { useAutoRefresh, useVisibilityRefresh } from "../hooks/useAutoRefresh";
 
@@ -21,6 +22,15 @@ const challengeOptionFilters = [
         <SelectInput optionText="question" />
     </ReferenceInput>,
 ];
+
+// Custom pagination component with per-page options
+const ChallengeOptionPagination = () => (
+    <Pagination
+        rowsPerPageOptions={[10, 25, 50, 100]}
+        showFirstButton
+        showLastButton
+    />
+);
 
 const ChallengeOptionListActions = () => (
     <TopToolbar>
@@ -38,11 +48,20 @@ export const ChallengeOptionList = () => {
         <List
             filters={challengeOptionFilters}
             actions={<ChallengeOptionListActions />}
+            perPage={25}
+            pagination={<ChallengeOptionPagination />}
             sx={{
                 '& .RaList-main': {
                     backgroundColor: 'white',
                     borderRadius: 2,
                     boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                },
+                '& .RaList-pagination': {
+                    display: 'flex !important',
+                    visibility: 'visible !important',
+                    backgroundColor: 'white',
+                    padding: '16px',
+                    borderTop: '1px solid #e0e0e0',
                 },
             }}
         >
