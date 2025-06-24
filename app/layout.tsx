@@ -7,6 +7,7 @@ import { ClerkProvider } from '@clerk/nextjs';
 import type { Metadata } from "next";
 import { Nunito } from "next/font/google";
 import "./globals.css";
+import { LoginTracker } from '@/components/login-tracker';
 
 const font = Nunito({ subsets: ["latin"] });
 
@@ -31,6 +32,7 @@ export default function RootLayout({
           <ExitTestModal />
           <HeartsModal />
           <PracticeModal />
+          <LoginTracker />
           {children}
         </body>
       </html>

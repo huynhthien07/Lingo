@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import db from "@/db/drizzle";
 import { lessons } from "@/db/schema";
 import { getIsAdmin } from "@/lib/admin";
-import { ilike, eq, and, count, desc, asc } from "drizzle-orm";
+import { ilike, eq, and, count, desc, asc, inArray } from "drizzle-orm";
 
 export const GET = async (req: Request) => {
     if (!await getIsAdmin()) {
@@ -14,6 +14,7 @@ export const GET = async (req: Request) => {
         const { searchParams } = new URL(req.url);
         const titleFilter = searchParams.get('title');
         const unitIdFilter = searchParams.get('unitId');
+        const filterParam = searchParams.get('filter');
 
         // Pagination parameters
         const page = parseInt(searchParams.get('_page') || '1', 10);
@@ -26,6 +27,30 @@ export const GET = async (req: Request) => {
 
         // Build where conditions
         const conditions = [];
+
+        // Handle React Admin filter parameter (JSON encoded)
+        if (filterParam) {
+            try {
+                const filter = JSON.parse(decodeURIComponent(filterParam));
+
+                // Handle id array filter (for ReferenceInput)
+                if (filter.id && Array.isArray(filter.id)) {
+                    conditions.push(inArray(lessons.id, filter.id.map((id: any) => parseInt(id))));
+                }
+
+                // Handle other filters from the parsed filter object
+                if (filter.title) {
+                    conditions.push(ilike(lessons.title, `%${filter.title}%`));
+                }
+                if (filter.unitId) {
+                    conditions.push(eq(lessons.unitId, parseInt(filter.unitId)));
+                }
+            } catch (e) {
+                console.warn('Failed to parse filter parameter:', e);
+            }
+        }
+
+        // Handle direct filter parameters (for backward compatibility)
         if (titleFilter) {
             conditions.push(ilike(lessons.title, `%${titleFilter}%`));
         }

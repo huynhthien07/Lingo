@@ -14,7 +14,7 @@ import {
     BulkDeleteButton,
     BulkExportButton,
     TextInput,
-    BooleanInput,
+
     ReferenceInput,
     SelectInput,
     Pagination,
@@ -25,13 +25,17 @@ import {
     useListContext
 } from "react-admin";
 import { Chip, Avatar, Box, Typography, Dialog, DialogTitle, DialogContent, DialogActions, FormControl, InputLabel, Select, MenuItem } from "@mui/material";
-import { Favorite, Stars, SwapHoriz, Block, CheckCircle } from "@mui/icons-material";
+import { Favorite, Stars, SwapHoriz } from "@mui/icons-material";
 import { useState } from "react";
 import { useAutoRefresh, useVisibilityRefresh } from "../hooks/useAutoRefresh";
 
+// Admin user IDs that cannot be blocked
+const adminIds = [
+    "user_2tkC1z5zJJ4Sw2b85JXWEqmNeuY",
+];
+
 const userFilters = [
     <TextInput source="userName" label="Search by name" alwaysOn />,
-    <BooleanInput source="blocked" label="Blocked users" />,
     <ReferenceInput source="activeCourseId" reference="courses" label="Course">
         <SelectInput optionText="title" />
     </ReferenceInput>,
@@ -99,56 +103,11 @@ const TransferCourseDialog = ({ open, onClose, selectedIds, courses }: any) => {
     );
 };
 
-// Block/Unblock Users Dialog Component
-const BlockUsersDialog = ({ open, onClose, selectedIds, action }: any) => {
-    const [updateMany] = useUpdateMany();
-    const refresh = useRefresh();
-    const notify = useNotify();
 
-    const handleAction = async () => {
-        try {
-            await updateMany('users', {
-                ids: selectedIds,
-                data: { blocked: action === 'block' }
-            });
-            notify(`Successfully ${action}ed ${selectedIds.length} users`, { type: 'success' });
-            refresh();
-            onClose();
-        } catch (error) {
-            notify(`Error ${action}ing users`, { type: 'error' });
-        }
-    };
-
-    return (
-        <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-            <DialogTitle>
-                {action === 'block' ? 'Block Users' : 'Unblock Users'}
-            </DialogTitle>
-            <DialogContent>
-                <Typography>
-                    Are you sure you want to {action} {selectedIds.length} selected users?
-                    {action === 'block' && ' Blocked users will not be able to log in.'}
-                </Typography>
-            </DialogContent>
-            <DialogActions>
-                <Button onClick={onClose}>Cancel</Button>
-                <Button
-                    onClick={handleAction}
-                    variant="contained"
-                    color={action === 'block' ? 'error' : 'success'}
-                >
-                    {action === 'block' ? 'Block' : 'Unblock'} {selectedIds.length} Users
-                </Button>
-            </DialogActions>
-        </Dialog>
-    );
-};
 
 const UserBulkActionButtons = () => {
     const { selectedIds } = useListContext();
     const [transferDialogOpen, setTransferDialogOpen] = useState(false);
-    const [blockDialogOpen, setBlockDialogOpen] = useState(false);
-    const [unblockDialogOpen, setUnblockDialogOpen] = useState(false);
     const [courses, setCourses] = useState([]);
 
     // Fetch courses for transfer dialog
@@ -176,22 +135,6 @@ const UserBulkActionButtons = () => {
             >
                 Transfer Course
             </Button>
-            <Button
-                startIcon={<Block />}
-                onClick={() => setBlockDialogOpen(true)}
-                color="error"
-                sx={{ mr: 1 }}
-            >
-                Block Users
-            </Button>
-            <Button
-                startIcon={<CheckCircle />}
-                onClick={() => setUnblockDialogOpen(true)}
-                color="success"
-                sx={{ mr: 1 }}
-            >
-                Unblock Users
-            </Button>
             <BulkExportButton />
             <BulkDeleteButton />
 
@@ -200,18 +143,6 @@ const UserBulkActionButtons = () => {
                 onClose={() => setTransferDialogOpen(false)}
                 selectedIds={selectedIds}
                 courses={courses}
-            />
-            <BlockUsersDialog
-                open={blockDialogOpen}
-                onClose={() => setBlockDialogOpen(false)}
-                selectedIds={selectedIds}
-                action="block"
-            />
-            <BlockUsersDialog
-                open={unblockDialogOpen}
-                onClose={() => setUnblockDialogOpen(false)}
-                selectedIds={selectedIds}
-                action="unblock"
             />
         </>
     );
@@ -312,17 +243,7 @@ export const UserList = () => {
                         </Box>
                     )}
                 />
-                <FunctionField
-                    label="Status"
-                    render={(record: any) => (
-                        <Chip
-                            label={record.blocked ? "Blocked" : "Active"}
-                            color={record.blocked ? "error" : "success"}
-                            size="small"
-                            sx={{ fontWeight: 500 }}
-                        />
-                    )}
-                />
+
             </Datagrid>
         </List>
     );

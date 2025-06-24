@@ -1,13 +1,13 @@
 import { Menu, MenuItemLink, useSidebarState } from 'react-admin';
-import { 
-    Dashboard, 
-    School, 
-    MenuBook, 
-    Assignment, 
-    Quiz, 
-    RadioButtonChecked, 
-    People, 
-    BarChart 
+import {
+    Dashboard,
+    School,
+    MenuBook,
+    Assignment,
+    Quiz,
+    RadioButtonChecked,
+    People,
+    BarChart
 } from '@mui/icons-material';
 import { Box, Typography, Divider } from '@mui/material';
 
@@ -47,15 +47,15 @@ export const CustomMenu = () => {
                     </Typography>
                 </Box>
             )}
-            
+
             <MenuItemLink
                 to="/"
                 primaryText="Dashboard"
                 leftIcon={<Dashboard />}
             />
-            
+
             <Divider sx={{ my: 1 }} />
-            
+
             <MenuItemLink
                 to="/courses"
                 primaryText="Courses"
@@ -81,12 +81,17 @@ export const CustomMenu = () => {
                 primaryText="Challenge Options"
                 leftIcon={<RadioButtonChecked />}
             />
-            
+
             <Divider sx={{ my: 1 }} />
-            
+
             <MenuItemLink
                 to="/users"
-                primaryText="Users"
+                primaryText="User Progress"
+                leftIcon={<People />}
+            />
+            <MenuItemLink
+                to="/admin-users"
+                primaryText="User Management"
                 leftIcon={<People />}
             />
             <MenuItemLink

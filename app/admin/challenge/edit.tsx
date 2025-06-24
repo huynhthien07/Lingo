@@ -4,35 +4,56 @@ export const ChallengeEdit = () => {
     return (
         <Edit>
             <SimpleForm>
-                <TextInput 
-                    source = "question" 
-                    validate={[required()]} 
-                    label = "Question"
+                <TextInput
+                    source="question"
+                    validate={[required()]}
+                    label="Question"
                 />
-                
+
                 <SelectInput
-                    source = "type"
-                    choices = {[
+                    source="type"
+                    choices={[
                         {
                             id: "SELECT",
-                            name: "SELECT",
+                            name: "Multiple Choice",
                         },
                         {
                             id: "ASSIST",
-                            name: "ASSIST",
+                            name: "Assisted Learning",
+                        },
+                        {
+                            id: "GRAMMAR",
+                            name: "Grammar Exercise",
+                        },
+                        {
+                            id: "VOCABULARY",
+                            name: "Vocabulary Practice",
+                        },
+                        {
+                            id: "LISTENING",
+                            name: "Listening Comprehension",
+                        },
+                        {
+                            id: "READING",
+                            name: "Reading Comprehension",
                         }
                     ]}
                     validate={[required()]}
                 />
 
                 <ReferenceInput
-                    source = "lessonId"
+                    source="lessonId"
                     reference="lessons"
-                />
+                    label="Lesson"
+                    sort={{ field: 'id', order: 'DESC' }}
+                    perPage={100}
+                >
+                    <SelectInput optionText="title" validate={[required()]} />
+                </ReferenceInput>
                 <NumberInput
-                    source = "order"
-                    validate = {[required()]}
-                    label = "Order"
+                    source="order"
+                    validate={[required()]}
+                    label="Order"
                 />
             </SimpleForm>
         </Edit>
