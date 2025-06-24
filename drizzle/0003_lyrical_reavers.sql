@@ -1,0 +1,21 @@
+CREATE TABLE "users" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"email" text NOT NULL,
+	"user_name" text DEFAULT 'User' NOT NULL,
+	"user_image_src" text DEFAULT '/mascot.svg' NOT NULL,
+	"status" text DEFAULT 'active' NOT NULL,
+	"role" text DEFAULT 'user' NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	"last_login_at" timestamp,
+	"first_name" text,
+	"last_name" text,
+	"phone_number" text,
+	"date_of_birth" timestamp,
+	"country" text,
+	"language" text DEFAULT 'en',
+	"timezone" text,
+	CONSTRAINT "users_user_id_unique" UNIQUE("user_id"),
+	CONSTRAINT "users_email_unique" UNIQUE("email")
+);

@@ -20,10 +20,13 @@ import { UnitEdit } from "./unit/edit";
 import { UnitList } from "./unit/list";
 import { UserEdit } from "./user/edit";
 import { UserList } from "./user/list";
+import { AdminUserList } from "./admin-users/list";
+import { AdminUserEdit } from "./admin-users/edit";
+import { AdminUserCreate } from "./admin-users/create";
 import { StatisticsList } from "./statistics/list";
 import { CustomLayout } from "./layout/CustomLayout";
 import { Dashboard } from "./dashboard/Dashboard";
-import { SearchTest } from "./debug/search-test";
+
 import { AdminThemeProvider, useTheme } from "./context/ThemeContext";
 
 const App = () => {
@@ -195,9 +198,12 @@ const AdminContent = () => {
             options={{ label: "📊 Statistics" }}
           />
           <Resource
-            name="search-test"
-            list={SearchTest}
-            options={{ label: "🔍 Search Test" }}
+            name="admin-users"
+            list={AdminUserList}
+            edit={AdminUserEdit}
+            create={AdminUserCreate}
+            recordRepresentation="userName"
+            options={{ label: "👤 User Management" }}
           />
         </Admin>
       </Box>

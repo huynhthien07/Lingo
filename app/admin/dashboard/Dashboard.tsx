@@ -6,7 +6,9 @@ import {
     Chip,
     Card,
     CardContent,
-    CardHeader
+    CardHeader,
+    CircularProgress,
+    Alert
 } from '@mui/material';
 import {
     School,
@@ -14,8 +16,13 @@ import {
     Quiz,
     TrendingUp,
     MenuBook,
-    Assignment
+    Assignment,
+    PersonAdd,
+    CheckCircle,
+    Block,
+    Star
 } from '@mui/icons-material';
+import { useState, useEffect } from 'react';
 
 const StatCard = ({ title, value, icon, color, subtitle }: {
     title: string;
@@ -64,7 +71,89 @@ const StatCard = ({ title, value, icon, color, subtitle }: {
     </Paper>
 );
 
+// Types for our analytics data
+interface AnalyticsData {
+    users: {
+        totalUsers: number;
+        monthlyActiveUsers: number;
+    };
+    lessons: {
+        usersWithCompletedLessons: number;
+        totalLessonCompletions: number;
+        monthlyLessonCompletions: number;
+    };
+    subscriptions: {
+        totalSubscribers: number;
+        activeSubscribers: number;
+        monthlyNewSubscribers: number;
+    };
+}
+
+interface ContentCounts {
+    courses: number;
+    units: number;
+    lessons: number;
+    challenges: number;
+    blockedUsers: number;
+}
+
 export const Dashboard = () => {
+    const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
+    const [contentCounts, setContentCounts] = useState<ContentCounts | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        const fetchDashboardData = async () => {
+            try {
+                setLoading(true);
+                setError(null);
+
+                // Fetch analytics data
+                const analyticsResponse = await fetch('/api/analytics/overview');
+                if (!analyticsResponse.ok) {
+                    throw new Error('Failed to fetch analytics data');
+                }
+                const analytics = await analyticsResponse.json();
+
+                // Fetch content counts
+                const contentResponse = await fetch('/api/analytics/content');
+                if (!contentResponse.ok) {
+                    throw new Error('Failed to fetch content statistics');
+                }
+                const content = await contentResponse.json();
+
+                setAnalyticsData(analytics);
+                setContentCounts(content);
+            } catch (err) {
+                console.error('Error fetching dashboard data:', err);
+                setError('Failed to load dashboard data');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchDashboardData();
+    }, []);
+
+    if (loading) {
+        return (
+            <Box sx={{ p: 3, display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
+                <CircularProgress size={60} />
+            </Box>
+        );
+    }
+
+    if (error) {
+        return (
+            <Box sx={{ p: 3 }}>
+                <Alert severity="error" sx={{ mb: 3 }}>
+                    {error}
+                </Alert>
+            </Box>
+        );
+    }
+
     return (
         <Box sx={{ p: 3 }}>
             <Typography variant="h4" sx={{ mb: 3, fontWeight: 600, color: '#333' }}>
@@ -78,101 +167,181 @@ export const Dashboard = () => {
                 mb: 4
             }}>
                 <StatCard
-                    title="Total Courses"
-                    value="5"
-                    icon={<School />}
+                    title="Total Users"
+                    value={analyticsData?.users.totalUsers || 0}
+                    icon={<People />}
                     color="#1976d2"
-                    subtitle="English, French, Spanish"
+                    subtitle={`${analyticsData?.users.monthlyActiveUsers || 0} monthly active`}
                 />
                 <StatCard
-                    title="Active Users"
-                    value="1,234"
-                    icon={<People />}
+                    title="Total Courses"
+                    value={contentCounts?.courses || 0}
+                    icon={<School />}
                     color="#2e7d32"
-                    subtitle="Learning daily"
+                    subtitle="Available languages"
                 />
                 <StatCard
                     title="Total Challenges"
-                    value="250"
+                    value={contentCounts?.challenges || 0}
                     icon={<Quiz />}
                     color="#ed6c02"
                     subtitle="Across all courses"
                 />
                 <StatCard
                     title="Units Created"
-                    value="50"
+                    value={contentCounts?.units || 0}
                     icon={<MenuBook />}
                     color="#9c27b0"
-                    subtitle="10 units per course"
+                    subtitle="Learning modules"
                 />
                 <StatCard
                     title="Lessons Available"
-                    value="250"
+                    value={contentCounts?.lessons || 0}
                     icon={<Assignment />}
                     color="#d32f2f"
-                    subtitle="5 lessons per unit"
+                    subtitle="Total lessons"
                 />
                 <StatCard
-                    title="Growth Rate"
-                    value="+12%"
-                    icon={<TrendingUp />}
-                    color="#0288d1"
-                    subtitle="This month"
+                    title="Premium Subscribers"
+                    value={analyticsData?.subscriptions.totalSubscribers || 0}
+                    icon={<Star />}
+                    color="#ff9800"
+                    subtitle={`${analyticsData?.subscriptions.monthlyNewSubscribers || 0} new this month`}
                 />
             </Box>
 
             <Box sx={{
                 display: 'grid',
-                gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+                gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr' },
                 gap: 3
             }}>
                 <Card sx={{ borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-                    <CardHeader title="Course Status" />
+                    <CardHeader title="User Engagement" />
                     <CardContent>
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <Typography>English Starter</Typography>
-                                <Chip label="Active" color="success" size="small" />
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <CheckCircle sx={{ color: '#4caf50', fontSize: 20 }} />
+                                    <Typography variant="body2">Users with Progress</Typography>
+                                </Box>
+                                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                                    {analyticsData?.lessons.usersWithCompletedLessons || 0}
+                                </Typography>
                             </Box>
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <Typography>English 5.0</Typography>
-                                <Chip label="Active" color="success" size="small" />
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <Assignment sx={{ color: '#2196f3', fontSize: 20 }} />
+                                    <Typography variant="body2">Total Completions</Typography>
+                                </Box>
+                                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                                    {analyticsData?.lessons.totalLessonCompletions || 0}
+                                </Typography>
                             </Box>
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <Typography>English 6.0</Typography>
-                                <Chip label="Active" color="success" size="small" />
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <TrendingUp sx={{ color: '#ff9800', fontSize: 20 }} />
+                                    <Typography variant="body2">Monthly Completions</Typography>
+                                </Box>
+                                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                                    {analyticsData?.lessons.monthlyLessonCompletions || 0}
+                                </Typography>
                             </Box>
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <Typography>French Starter</Typography>
-                                <Chip label="Active" color="success" size="small" />
-                            </Box>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <Typography>Spanish Starter</Typography>
-                                <Chip label="Active" color="success" size="small" />
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <Block sx={{ color: '#f44336', fontSize: 20 }} />
+                                    <Typography variant="body2">Blocked Users</Typography>
+                                </Box>
+                                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                                    {contentCounts?.blockedUsers || 0}
+                                </Typography>
                             </Box>
                         </Box>
                     </CardContent>
                 </Card>
 
                 <Card sx={{ borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-                    <CardHeader title="Quick Actions" />
+                    <CardHeader title="Content Overview" />
                     <CardContent>
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                            <Typography variant="body2" sx={{ color: '#666' }}>
-                                • Create new course content
-                            </Typography>
-                            <Typography variant="body2" sx={{ color: '#666' }}>
-                                • Manage user accounts
-                            </Typography>
-                            <Typography variant="body2" sx={{ color: '#666' }}>
-                                • View learning statistics
-                            </Typography>
-                            <Typography variant="body2" sx={{ color: '#666' }}>
-                                • Add new challenges
-                            </Typography>
-                            <Typography variant="body2" sx={{ color: '#666' }}>
-                                • Monitor user progress
-                            </Typography>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Typography variant="body2">Courses Available</Typography>
+                                <Chip
+                                    label={contentCounts?.courses || 0}
+                                    color="primary"
+                                    size="small"
+                                    sx={{ fontWeight: 600 }}
+                                />
+                            </Box>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Typography variant="body2">Learning Units</Typography>
+                                <Chip
+                                    label={contentCounts?.units || 0}
+                                    color="secondary"
+                                    size="small"
+                                    sx={{ fontWeight: 600 }}
+                                />
+                            </Box>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Typography variant="body2">Total Lessons</Typography>
+                                <Chip
+                                    label={contentCounts?.lessons || 0}
+                                    color="success"
+                                    size="small"
+                                    sx={{ fontWeight: 600 }}
+                                />
+                            </Box>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Typography variant="body2">Practice Challenges</Typography>
+                                <Chip
+                                    label={contentCounts?.challenges || 0}
+                                    color="warning"
+                                    size="small"
+                                    sx={{ fontWeight: 600 }}
+                                />
+                            </Box>
+                        </Box>
+                    </CardContent>
+                </Card>
+
+                <Card sx={{ borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+                    <CardHeader title="Premium Insights" />
+                    <CardContent>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <Star sx={{ color: '#ffc107', fontSize: 20 }} />
+                                    <Typography variant="body2">Total Subscribers</Typography>
+                                </Box>
+                                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                                    {analyticsData?.subscriptions.totalSubscribers || 0}
+                                </Typography>
+                            </Box>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <CheckCircle sx={{ color: '#4caf50', fontSize: 20 }} />
+                                    <Typography variant="body2">Active Subscriptions</Typography>
+                                </Box>
+                                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                                    {analyticsData?.subscriptions.activeSubscribers || 0}
+                                </Typography>
+                            </Box>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <PersonAdd sx={{ color: '#2196f3', fontSize: 20 }} />
+                                    <Typography variant="body2">New This Month</Typography>
+                                </Box>
+                                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                                    {analyticsData?.subscriptions.monthlyNewSubscribers || 0}
+                                </Typography>
+                            </Box>
+                            <Box sx={{ mt: 1 }}>
+                                <Typography variant="body2" sx={{ color: '#666', textAlign: 'center' }}>
+                                    {analyticsData?.subscriptions.totalSubscribers > 0
+                                        ? `${Math.round((analyticsData.subscriptions.activeSubscribers / analyticsData.subscriptions.totalSubscribers) * 100)}% retention rate`
+                                        : 'No subscription data'
+                                    }
+                                </Typography>
+                            </Box>
                         </Box>
                     </CardContent>
                 </Card>

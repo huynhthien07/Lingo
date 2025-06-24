@@ -1,5 +1,5 @@
 import db from "@/db/drizzle";
-import { challengeProgress, courses, lessons, units, userProgress, userSubscription, tests, vocabularyTopics, vocabularyWords } from "@/db/schema";
+import { challengeProgress, courses, lessons, units, userProgress, userSubscription, tests, vocabularyTopics, vocabularyWords, users } from "@/db/schema";
 import { auth } from "@clerk/nextjs/server";
 import { eq, sql, and, gte, lte, count, countDistinct } from "drizzle-orm";
 import { cache } from "react";
@@ -26,14 +26,28 @@ export const isUserBlocked = cache(async (userId?: string) => {
         return false;
     }
 
-    const data = await db.query.userProgress.findFirst({
+    // Check blocking status in the users table (new user management system)
+    const userData = await db.query.users.findFirst({
+        where: eq(users.userId, currentUserId),
+        columns: {
+            status: true,
+        },
+    });
+
+    // User is blocked if status is 'blocked' or 'suspended'
+    if (userData) {
+        return userData.status === 'blocked' || userData.status === 'suspended';
+    }
+
+    // Fallback: check the old user_progress table for backward compatibility
+    const progressData = await db.query.userProgress.findFirst({
         where: eq(userProgress.userId, currentUserId),
         columns: {
             blocked: true,
         },
     });
 
-    return data?.blocked || false;
+    return progressData?.blocked || false;
 });
 
 export const getUnits = cache(async () => {

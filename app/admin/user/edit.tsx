@@ -4,26 +4,38 @@ import {
     Edit,
     SimpleForm,
     TextInput,
-    BooleanInput,
+
     NumberInput,
     ReferenceInput,
     SelectInput,
     required,
     useNotify,
     useRefresh,
-    useRedirect
+    useRedirect,
+
 } from "react-admin";
-import { useAutoRefresh } from "../hooks/useAutoRefresh";
+
+// Admin user IDs that cannot be blocked
+const adminIds = [
+    "user_2tkC1z5zJJ4Sw2b85JXWEqmNeuY",
+];
+
+
 
 export const UserEdit = () => {
-    const { handleUpdateSuccess, handleError } = useAutoRefresh();
+    const notify = useNotify();
+    const refresh = useRefresh();
+    const redirect = useRedirect();
 
     const onSuccess = (data: any) => {
-        handleUpdateSuccess('User', data);
+        console.log('✅ User update successful:', data);
+        notify('User updated successfully', { type: 'success' });
+        refresh();
     };
 
     const onError = (error: any) => {
-        handleError(error, 'user update');
+        console.error('❌ User update error:', error);
+        notify('Error updating user', { type: 'error' });
     };
 
     return (
@@ -60,11 +72,6 @@ export const UserEdit = () => {
                     source="points"
                     label="Points"
                     min={0}
-                />
-                <BooleanInput
-                    source="blocked"
-                    label="Block User"
-                    helperText="Blocked users cannot log in to the system"
                 />
             </SimpleForm>
         </Edit>

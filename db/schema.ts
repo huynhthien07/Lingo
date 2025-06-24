@@ -111,6 +111,37 @@ export const userProgressRelations = relations(userProgress, ({ one }) =>
     }),
 }));
 
+
+
+// Users table for comprehensive user management
+export const users = pgTable("users", {
+    id: serial("id").primaryKey(),
+    userId: text("user_id").notNull().unique(), // Clerk user ID
+    email: text("email").notNull().unique(),
+    userName: text("user_name").notNull().default("User"),
+    userImageSrc: text("user_image_src").notNull().default("/mascot.svg"),
+    status: text("status").notNull().default("active"), // active, blocked, suspended
+    role: text("role").notNull().default("user"), // user, premium, etc.
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+    lastLoginAt: timestamp("last_login_at"),
+    // Additional user information
+    firstName: text("first_name"),
+    lastName: text("last_name"),
+    phoneNumber: text("phone_number"),
+    dateOfBirth: timestamp("date_of_birth"),
+    country: text("country"),
+    language: text("language").default("en"),
+    timezone: text("timezone"),
+});
+
+export const usersRelations = relations(users, ({ one }) => ({
+    userProgress: one(userProgress, {
+        fields: [users.userId],
+        references: [userProgress.userId],
+    }),
+}));
+
 export const userSubscription = pgTable("user_subscription", {
     id: serial("id").primaryKey(),
     userId: text("user_id").notNull().unique(),

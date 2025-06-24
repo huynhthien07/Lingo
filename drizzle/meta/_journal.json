@@ -8,6 +8,27 @@
       "when": 1750399150088,
       "tag": "0000_yellow_the_anarchist",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1750692808308,
+      "tag": "0001_bitter_photon",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1750694524871,
+      "tag": "0002_fresh_madame_web",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1750695044679,
+      "tag": "0003_lyrical_reavers",
+      "breakpoints": true
     }
   ]
 }
