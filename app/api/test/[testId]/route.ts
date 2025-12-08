@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
-import db from "@/db/drizzle";
-import { tests, testQuestions, testOptions } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { getTestById } from "@/lib/controllers/test.controller";
 
 export async function GET(
   request: Request,
@@ -18,33 +16,19 @@ export async function GET(
       );
     }
 
-    // Get the test
-    const test = await db.query.tests.findFirst({
-      where: eq(tests.id, testId_num),
-    });
+    const testData = await getTestById(testId_num);
 
-    if (!test) {
+    return NextResponse.json(testData);
+  } catch (error) {
+    console.error("Error in GET /api/test/[testId]:", error);
+
+    if (error instanceof Error && error.message === "Test not found") {
       return NextResponse.json(
         { error: "Test not found" },
         { status: 404 }
       );
     }
 
-    // Get the questions for this test
-    const questions = await db.query.testQuestions.findMany({
-      where: eq(testQuestions.testId, testId_num),
-      with: {
-        options: true,
-      },
-      orderBy: (testQuestions, { asc }) => [asc(testQuestions.order)],
-    });
-
-    return NextResponse.json({
-      ...test,
-      questions,
-    });
-  } catch (error) {
-    console.error("Error fetching test:", error);
     return NextResponse.json(
       { error: "Failed to fetch test" },
       { status: 500 }

@@ -35,8 +35,8 @@ export default function Home() {
             <SignedOut>
               <SignUpButton
                 mode="modal"
-                afterSignInUrl="/learn"
-                afterSignUpUrl="/learn"
+                afterSignInUrl="/dashboard"
+                afterSignUpUrl="/dashboard"
               >
                 <Button size="lg" variant="secondary"
                   className="w-full">
@@ -45,8 +45,8 @@ export default function Home() {
               </SignUpButton>
               <SignInButton
                 mode="modal"
-                afterSignInUrl="/learn"
-                afterSignUpUrl="/learn"
+                afterSignInUrl="/dashboard"
+                afterSignUpUrl="/dashboard"
               >
                 <Button size="lg" variant="primaryOutline"
                   className="w-full">
@@ -57,8 +57,8 @@ export default function Home() {
             <SignedIn>
               <Button size="lg" variant="secondary"
                 className="w-full" asChild>
-                <Link href="/learn">
-                  Continue Learning
+                <Link href="/dashboard">
+                  Go to Dashboard
                 </Link>
               </Button>
             </SignedIn>

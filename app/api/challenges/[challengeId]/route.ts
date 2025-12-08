@@ -1,9 +1,6 @@
-import db from '@/db/drizzle';
-import { challenges } from '@/db/schema';
 import { getIsAdmin } from '@/lib/admin';
-import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
-
+import { getChallengeById, updateChallenge, deleteChallenge } from '@/lib/controllers/challenge.controller';
 
 export const GET = async (
     req: Request,
@@ -12,11 +9,15 @@ export const GET = async (
     if (!await getIsAdmin()) {
         return new NextResponse("Unauthorized", { status: 401 });
     }
-    const { challengeId } = await params;
-    const data = await db.query.challenges.findFirst({
-        where: eq(challenges.id, parseInt(challengeId)),
-    });
-    return NextResponse.json(data);
+
+    try {
+        const { challengeId } = await params;
+        const challenge = await getChallengeById(parseInt(challengeId));
+        return NextResponse.json(challenge);
+    } catch (error) {
+        console.error("Error in GET /api/challenges/[challengeId]:", error);
+        return new NextResponse("Internal Server Error", { status: 500 });
+    }
 };
 
 export const PUT = async (
@@ -27,13 +28,15 @@ export const PUT = async (
         return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const { challengeId } = await params;
-    const body = await req.json();
-    const data = await db.update(challenges).set({
-        ...body,
-    }).where(eq(challenges.id, parseInt(challengeId))).returning();
-
-    return NextResponse.json(data[0]);
+    try {
+        const { challengeId } = await params;
+        const body = await req.json();
+        const updatedChallenge = await updateChallenge(parseInt(challengeId), body);
+        return NextResponse.json(updatedChallenge);
+    } catch (error) {
+        console.error("Error in PUT /api/challenges/[challengeId]:", error);
+        return new NextResponse("Internal Server Error", { status: 500 });
+    }
 };
 
 export const DELETE = async (
@@ -43,9 +46,13 @@ export const DELETE = async (
     if (!await getIsAdmin()) {
         return new NextResponse("Unauthorized", { status: 401 });
     }
-    const { challengeId } = await params;
-    const data = await db.delete(challenges)
-        .where(eq(challenges.id, parseInt(challengeId))).returning();
 
-    return NextResponse.json(data[0]);
+    try {
+        const { challengeId } = await params;
+        const deletedChallenge = await deleteChallenge(parseInt(challengeId));
+        return NextResponse.json(deletedChallenge);
+    } catch (error) {
+        console.error("Error in DELETE /api/challenges/[challengeId]:", error);
+        return new NextResponse("Internal Server Error", { status: 500 });
+    }
 };

@@ -1,5 +1,5 @@
 import db from "@/db/drizzle";
-import { challengeProgress, courses, lessons, units, userProgress, userSubscription, tests, vocabularyTopics, vocabularyWords, users } from "@/db/schema";
+import { challengeProgress, courses, lessons, units, userProgress, coursePayments, tests, vocabularyTopics, vocabularyWords, users } from "@/db/schema";
 import { auth } from "@clerk/nextjs/server";
 import { eq, sql, and, gte, lte, count, countDistinct } from "drizzle-orm";
 import { cache } from "react";
@@ -19,6 +19,12 @@ export const getUserProgress = cache(async () => {
     return data;
 });
 
+/**
+ * Check if user is blocked
+ *
+ * Reference: UC34 - User Management
+ * Status can be: 'active' or 'blocked'
+ */
 export const isUserBlocked = cache(async (userId?: string) => {
     const currentUserId = userId || (await auth()).userId;
 
@@ -26,7 +32,7 @@ export const isUserBlocked = cache(async (userId?: string) => {
         return false;
     }
 
-    // Check blocking status in the users table (new user management system)
+    // Check blocking status in the users table
     const userData = await db.query.users.findFirst({
         where: eq(users.userId, currentUserId),
         columns: {
@@ -34,20 +40,8 @@ export const isUserBlocked = cache(async (userId?: string) => {
         },
     });
 
-    // User is blocked if status is 'blocked' or 'suspended'
-    if (userData) {
-        return userData.status === 'blocked' || userData.status === 'suspended';
-    }
-
-    // Fallback: check the old user_progress table for backward compatibility
-    const progressData = await db.query.userProgress.findFirst({
-        where: eq(userProgress.userId, currentUserId),
-        columns: {
-            blocked: true,
-        },
-    });
-
-    return progressData?.blocked || false;
+    // User is blocked if status is 'blocked'
+    return userData?.status === 'blocked';
 });
 
 export const getUnits = cache(async () => {
@@ -243,26 +237,17 @@ export const getLessonPercentage = cache(async () => {
 });
 
 
+/**
+ * Get user subscription (DEPRECATED - replaced with one-time course payments)
+ *
+ * Note: This function is kept for backward compatibility but always returns null.
+ * Use coursePayments table instead for checking if user has paid for a course.
+ */
 const DAY_IN_MS = 86_400_000;
 export const getUserSubscription = cache(async () => {
-    const { userId } = await auth();
-
-    if (!userId) return null;
-
-    const data = await db.query.userSubscription.findFirst({
-        where: eq(userSubscription.userId, userId),
-    });
-
-    if (!data) return null;
-
-    const isActive =
-        data.stripePriceId &&
-        data.stripeCurrentPeriodEnd?.getTime()! + DAY_IN_MS > Date.now();
-
-    return {
-        ...data,
-        isActive: !!isActive,
-    };
+    // Subscription model removed - replaced with one-time course payments
+    // Return null to maintain backward compatibility
+    return null;
 });
 
 export const getTopTenUsers = cache(async () => {
@@ -278,12 +263,25 @@ export const getTopTenUsers = cache(async () => {
         limit: 10,
         columns: {
             userId: true,
-            userName: true,
-            userImageSrc: true,
             points: true,
         },
+        with: {
+            user: {
+                columns: {
+                    userName: true,
+                    userImageSrc: true,
+                },
+            },
+        },
     });
-    return data;
+
+    // Flatten the data to match the old structure
+    return data.map(item => ({
+        userId: item.userId,
+        userName: item.user?.userName || "User",
+        userImageSrc: item.user?.userImageSrc || "/mascot.svg",
+        points: item.points,
+    }));
 });
 
 export const getTests = async () => {
@@ -304,10 +302,15 @@ export const getTest = async (id: number) => {
         const test = await db.query.tests.findFirst({
             where: eq(tests.id, id),
             with: {
-                questions: {
-                    orderBy: (questions, { asc }) => [asc(questions.order)],
+                sections: {
+                    orderBy: (sections, { asc }) => [asc(sections.order)],
                     with: {
-                        options: true,
+                        questions: {
+                            orderBy: (questions, { asc }) => [asc(questions.order)],
+                            with: {
+                                options: true,
+                            },
+                        },
                     },
                 },
             },
@@ -421,41 +424,20 @@ export const getLessonCompletionStatistics = cache(async () => {
     }
 });
 
+/**
+ * Get premium subscription statistics (DEPRECATED - replaced with course payment statistics)
+ *
+ * Note: This function is kept for backward compatibility but returns zero values.
+ * Use coursePayments table instead for payment statistics.
+ */
 export const getPremiumSubscriptionStatistics = cache(async () => {
-    try {
-        // Get total number of premium subscribers
-        const totalSubscribers = await db.select({ count: count() }).from(userSubscription);
-
-        // Get active premium subscribers (subscription not expired)
-        const currentDate = new Date();
-        const activeSubscribers = await db.select({ count: count() })
-            .from(userSubscription)
-            .where(gte(userSubscription.stripeCurrentPeriodEnd, currentDate));
-
-        // Get new subscribers in the last month
-        const oneMonthAgo = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, currentDate.getDate());
-        const monthlyNewSubscribers = await db.select({ count: count() })
-            .from(userSubscription)
-            .where(
-                and(
-                    gte(userSubscription.stripeCurrentPeriodEnd, oneMonthAgo),
-                    gte(userSubscription.stripeCurrentPeriodEnd, currentDate)
-                )
-            );
-
-        return {
-            totalSubscribers: totalSubscribers[0]?.count || 0,
-            activeSubscribers: activeSubscribers[0]?.count || 0,
-            monthlyNewSubscribers: monthlyNewSubscribers[0]?.count || 0,
-        };
-    } catch (error) {
-        console.error("Failed to fetch premium subscription statistics:", error);
-        return {
-            totalSubscribers: 0,
-            activeSubscribers: 0,
-            monthlyNewSubscribers: 0,
-        };
-    }
+    // Subscription model removed - replaced with one-time course payments
+    // Return zero values to maintain backward compatibility
+    return {
+        totalSubscribers: 0,
+        activeSubscribers: 0,
+        monthlyNewSubscribers: 0,
+    };
 });
 
 export const getOverallStatistics = cache(async () => {

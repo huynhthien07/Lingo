@@ -1,29 +1,33 @@
+/**
+ * Admin Client - User & Account Management Focus
+ *
+ * Admin Area Structure:
+ * - Dashboard: User statistics, role distribution, language preferences
+ * - User Management: User list, detail, edit, change status (UC34)
+ * - Role & Permission Management: RBAC implementation
+ * - Language Pack Management: Multi-language UI (UC36, BR141-BR144)
+ * - System Settings: General configuration
+ *
+ * Reference: NIST RBAC Model for role-based access control
+ */
+
 "use client";
 
 import { Admin, Resource } from "react-admin";
 import { dataProvider } from "./dataProvider";
 import { Box, CssBaseline, GlobalStyles } from "@mui/material";
-import { ChallengeCreate } from "./challenge/create";
-import { ChallengeEdit } from "./challenge/edit";
-import { ChallengeList } from "./challenge/list";
-import { ChallengeOptionCreate } from "./challengeOption/create";
-import { ChallengeOptionEdit } from "./challengeOption/edit";
-import { ChallengeOptionList } from "./challengeOption/list";
-import { CourseCreate } from "./course/create";
-import { CourseEdit } from "./course/edit";
-import { CourseList } from "./course/list";
-import { LessonCreate } from "./lesson/create";
-import { LessonEdit } from "./lesson/edit";
-import { LessonList } from "./lesson/list";
-import { UnitCreate } from "./unit/create";
-import { UnitEdit } from "./unit/edit";
-import { UnitList } from "./unit/list";
-import { UserEdit } from "./user/edit";
-import { UserList } from "./user/list";
 import { AdminUserList } from "./admin-users/list";
 import { AdminUserEdit } from "./admin-users/edit";
 import { AdminUserCreate } from "./admin-users/create";
-import { StatisticsList } from "./statistics/list";
+import { AdminUserShow } from "./admin-users/show";
+import { RoleList } from "./roles/list";
+import { RoleEdit } from "./roles/edit";
+import { RoleCreate } from "./roles/create";
+import { LanguagePackList } from "./language-packs/list";
+import { LanguagePackEdit } from "./language-packs/edit-new";
+import { LanguagePackCreate } from "./language-packs/create";
+import { SettingsList } from "./settings/list";
+import { SettingsEdit } from "./settings/edit";
 import { CustomLayout } from "./layout/CustomLayout";
 import { Dashboard } from "./dashboard/Dashboard";
 
@@ -143,67 +147,45 @@ const AdminContent = () => {
           theme={currentTheme}
           layout={CustomLayout}
           dashboard={Dashboard}
-          title="Lingo Admin Dashboard"
+          title="IELTS Admin - User & Account Management"
         >
-          <Resource
-            name="courses"
-            list={CourseList}
-            create={CourseCreate}
-            edit={CourseEdit}
-            recordRepresentation="title"
-            options={{ label: "📚 Courses" }}
-          />
-          <Resource
-            name="units"
-            list={UnitList}
-            create={UnitCreate}
-            edit={UnitEdit}
-            recordRepresentation="title"
-            options={{ label: "📖 Units" }}
-          />
-          <Resource
-            name="lessons"
-            list={LessonList}
-            create={LessonCreate}
-            edit={LessonEdit}
-            recordRepresentation="title"
-            options={{ label: "📝 Lessons" }}
-          />
-          <Resource
-            name="challenges"
-            list={ChallengeList}
-            create={ChallengeCreate}
-            edit={ChallengeEdit}
-            recordRepresentation="question"
-            options={{ label: "🎯 Challenges" }}
-          />
-          <Resource
-            name="challengeOptions"
-            list={ChallengeOptionList}
-            create={ChallengeOptionCreate}
-            edit={ChallengeOptionEdit}
-            recordRepresentation="text"
-            options={{ label: "🔘 Challenge Options" }}
-          />
+          {/* User Management - UC34 */}
           <Resource
             name="users"
-            list={UserList}
-            edit={UserEdit}
-            recordRepresentation="userName"
-            options={{ label: "👥 Users" }}
-          />
-          <Resource
-            name="statistics"
-            list={StatisticsList}
-            options={{ label: "📊 Statistics" }}
-          />
-          <Resource
-            name="admin-users"
             list={AdminUserList}
             edit={AdminUserEdit}
             create={AdminUserCreate}
+            show={AdminUserShow}
             recordRepresentation="userName"
-            options={{ label: "👤 User Management" }}
+            options={{ label: "👥 User Management" }}
+          />
+
+          {/* Role & Permission Management - RBAC */}
+          <Resource
+            name="roles"
+            list={RoleList}
+            edit={RoleEdit}
+            recordRepresentation="name"
+            options={{ label: "🔐 Role & Permissions" }}
+          />
+
+          {/* Language Pack Management - UC36, BR141-BR144 */}
+          <Resource
+            name="language-packs"
+            list={LanguagePackList}
+            edit={LanguagePackEdit}
+            create={LanguagePackCreate}
+            recordRepresentation="name"
+            options={{ label: "🌐 Language Packs" }}
+          />
+
+          {/* System Settings */}
+          <Resource
+            name="settings"
+            list={SettingsList}
+            edit={SettingsEdit}
+            recordRepresentation="label"
+            options={{ label: "⚙️ System Settings" }}
           />
         </Admin>
       </Box>

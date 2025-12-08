@@ -7,6 +7,7 @@ import {
     FunctionField,
     ExportButton,
     TopToolbar,
+    CreateButton,
     BulkDeleteButton,
     BulkExportButton,
     TextInput,
@@ -23,17 +24,27 @@ import { Person, Block, CheckCircle, AdminPanelSettings } from "@mui/icons-mater
 import { useState } from "react";
 import { useAutoRefresh, useVisibilityRefresh } from "../hooks/useAutoRefresh";
 
+/**
+ * User Management - UC34
+ *
+ * Filters for user list:
+ * - Search by name, email
+ * - Filter by status (active, blocked)
+ * - Filter by role (STUDENT, TEACHER, ADMIN)
+ *
+ * Reference: NIST RBAC Model
+ */
 const userFilters = [
     <TextInput source="userName" label="Search by name" alwaysOn />,
     <TextInput source="email" label="Search by email" />,
     <SelectInput source="status" label="Status" choices={[
         { id: 'active', name: 'Active' },
         { id: 'blocked', name: 'Blocked' },
-        { id: 'suspended', name: 'Suspended' },
     ]} />,
     <SelectInput source="role" label="Role" choices={[
-        { id: 'user', name: 'User' },
-        { id: 'premium', name: 'Premium' },
+        { id: 'STUDENT', name: 'Student' },
+        { id: 'TEACHER', name: 'Teacher' },
+        { id: 'ADMIN', name: 'Admin' },
     ]} />,
 ];
 
@@ -44,6 +55,7 @@ const UserPagination = () => (
 
 const UserListActions = () => (
     <TopToolbar>
+        <CreateButton />
         <ExportButton />
     </TopToolbar>
 );
@@ -236,16 +248,28 @@ export const AdminUserList = () => {
                 <TextField source="userId" label="User ID" />
                 <FunctionField
                     label="Role"
-                    render={(record: any) => (
-                        <Chip
-                            label={record.role || 'user'}
-                            color={record.role === 'premium' ? 'primary' : 'default'}
-                            variant="outlined"
-                            size="small"
-                            icon={record.role === 'premium' ? <AdminPanelSettings /> : <Person />}
-                            onClick={(e) => e.stopPropagation()}
-                        />
-                    )}
+                    render={(record: any) => {
+                        const roleColors: Record<string, "primary" | "secondary" | "error" | "warning" | "info" | "success"> = {
+                            STUDENT: 'primary',
+                            TEACHER: 'warning',
+                            ADMIN: 'error'
+                        };
+                        const roleIcons: Record<string, React.ReactNode> = {
+                            STUDENT: <Person />,
+                            TEACHER: <Person />,
+                            ADMIN: <AdminPanelSettings />
+                        };
+                        return (
+                            <Chip
+                                label={record.role || 'STUDENT'}
+                                color={roleColors[record.role] || 'default'}
+                                variant="outlined"
+                                size="small"
+                                icon={roleIcons[record.role] || <Person />}
+                                onClick={(e) => e.stopPropagation()}
+                            />
+                        );
+                    }}
                 />
                 <FunctionField
                     label="Status"
@@ -263,10 +287,10 @@ export const AdminUserList = () => {
                     )}
                 />
                 <FunctionField
-                    label="Country"
+                    label="Language"
                     render={(record: any) => (
                         <Typography variant="body2" sx={{ color: '#6b7280' }}>
-                            {record.country || 'N/A'}
+                            {record.language === 'en' ? '🇬🇧 English' : record.language === 'vi' ? '🇻🇳 Vietnamese' : 'N/A'}
                         </Typography>
                     )}
                 />
@@ -275,14 +299,6 @@ export const AdminUserList = () => {
                     render={(record: any) => (
                         <Typography variant="body2" sx={{ color: '#6b7280' }}>
                             {record.createdAt ? new Date(record.createdAt).toLocaleDateString() : 'N/A'}
-                        </Typography>
-                    )}
-                />
-                <FunctionField
-                    label="Last Login"
-                    render={(record: any) => (
-                        <Typography variant="body2" sx={{ color: '#6b7280' }}>
-                            {record.lastLoginAt ? new Date(record.lastLoginAt).toLocaleDateString() : 'Never'}
                         </Typography>
                     )}
                 />

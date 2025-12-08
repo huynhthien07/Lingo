@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
-import db from "@/db/drizzle";
-import { userProgress } from "@/db/schema";
 import { getIsAdmin } from "@/lib/admin";
-import { inArray } from "drizzle-orm";
+import { bulkDeleteUsers } from "@/lib/controllers/user.controller";
 
 export const DELETE = async (req: Request) => {
     if (!await getIsAdmin()) {
@@ -17,21 +15,15 @@ export const DELETE = async (req: Request) => {
             return new NextResponse("Invalid or missing ids array", { status: 400 });
         }
 
-        console.log(`🗑️ DELETE /api/users/bulk-delete - Request received`);
-        console.log("📝 IDs to delete:", ids);
+        const deletedUsers = await bulkDeleteUsers(ids);
 
-        const deletedUsers = await db.delete(userProgress)
-            .where(inArray(userProgress.userId, ids))
-            .returning();
-
-        console.log(`✅ DELETE /api/users/bulk-delete - ${deletedUsers.length} user progress records deleted successfully`);
-        return NextResponse.json({ 
-            success: true, 
+        return NextResponse.json({
+            success: true,
             deletedCount: deletedUsers.length,
-            deletedUsers 
+            deletedUsers
         });
     } catch (error) {
-        console.error("Error bulk deleting user progress:", error);
+        console.error("Error in DELETE /api/users/bulk-delete:", error);
         return new NextResponse("Internal Server Error", { status: 500 });
     }
 };

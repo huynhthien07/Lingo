@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
-
-import db from "@/db/drizzle";
-import { challenges } from "@/db/schema";
 import { getIsAdmin } from "@/lib/admin";
+import { getAllChallenges, createChallenge } from "@/lib/controllers/challenge.controller";
 
 export const GET = async (req: Request) => {
     if (!await getIsAdmin()) {
@@ -11,34 +9,23 @@ export const GET = async (req: Request) => {
 
     try {
         const { searchParams } = new URL(req.url);
-        const questionFilter = searchParams.get('question');
-        const typeFilter = searchParams.get('type');
-        const lessonIdFilter = searchParams.get('lessonId');
+        const params = {
+            question: searchParams.get('question') || undefined,
+            type: searchParams.get('type') || undefined,
+            lessonId: searchParams.get('lessonId') ? parseInt(searchParams.get('lessonId')!) : undefined,
+            page: parseInt(searchParams.get('_page') || '1', 10),
+            limit: parseInt(searchParams.get('_limit') || '25', 10),
+            sortField: searchParams.get('_sort') || 'order',
+            sortOrder: (searchParams.get('_order') || 'asc') as 'asc' | 'desc',
+        };
 
-        let data;
-        if (questionFilter || typeFilter || lessonIdFilter) {
-            data = await db.query.challenges.findMany({
-                where: (challenges, { ilike, eq, and }) => {
-                    const conditions = [];
-                    if (questionFilter) {
-                        conditions.push(ilike(challenges.question, `%${questionFilter}%`));
-                    }
-                    if (typeFilter) {
-                        conditions.push(eq(challenges.type, typeFilter as any));
-                    }
-                    if (lessonIdFilter) {
-                        conditions.push(eq(challenges.lessonId, parseInt(lessonIdFilter)));
-                    }
-                    return conditions.length > 1 ? and(...conditions) : conditions[0];
-                }
-            });
-        } else {
-            data = await db.query.challenges.findMany();
-        }
+        const result = await getAllChallenges(params);
 
-        return NextResponse.json(data);
+        const response = NextResponse.json(result.data);
+        response.headers.set('x-total-count', result.total.toString());
+        return response;
     } catch (error) {
-        console.error("Error fetching challenges:", error);
+        console.error("Error in GET /api/challenges:", error);
         return new NextResponse("Internal Server Error", { status: 500 });
     }
 }
@@ -48,14 +35,15 @@ export const POST = async (req: Request) => {
         return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const body = await req.json();
+    try {
+        const body = await req.json();
+        const { id, ...challengeData } = body;
 
-    // Remove id from body to let database auto-generate it
-    const { id, ...challengeData } = body;
+        const newChallenge = await createChallenge(challengeData);
 
-    const data = await db.insert(challenges).values({
-        ...challengeData,
-    }).returning();
-
-    return NextResponse.json(data[0]);
+        return NextResponse.json(newChallenge);
+    } catch (error) {
+        console.error("Error in POST /api/challenges:", error);
+        return new NextResponse("Internal Server Error", { status: 500 });
+    }
 }

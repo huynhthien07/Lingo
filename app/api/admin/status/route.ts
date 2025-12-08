@@ -1,19 +1,20 @@
 import { NextResponse } from "next/server";
-import { getIsAdmin } from "@/lib/admin";
 import { auth } from "@clerk/nextjs/server";
+import { checkAdminStatus } from "@/lib/controllers/admin.controller";
 
 export const GET = async () => {
     try {
         const { userId } = await auth();
-        const isAdmin = await getIsAdmin();
-        
-        return NextResponse.json({
-            userId,
-            isAdmin,
-            timestamp: new Date().toISOString()
-        });
+
+        if (!userId) {
+            return new NextResponse("Unauthorized", { status: 401 });
+        }
+
+        const status = await checkAdminStatus(userId);
+
+        return NextResponse.json(status);
     } catch (error) {
-        console.error("Error checking admin status:", error);
+        console.error("Error in GET /api/admin/status:", error);
         return NextResponse.json({
             error: "Failed to check admin status",
             details: error instanceof Error ? error.message : "Unknown error"

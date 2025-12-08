@@ -1,9 +1,6 @@
-import db from '@/db/drizzle';
-import { courses } from '@/db/schema';
 import { getIsAdmin } from '@/lib/admin';
-import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
-
+import { getCourseById, updateCourse, deleteCourse } from '@/lib/controllers/course.controller';
 
 export const GET = async (
     req: Request,
@@ -12,10 +9,15 @@ export const GET = async (
     if (!await getIsAdmin()) {
         return new NextResponse("Unauthorized", { status: 401 });
     }
-    const data = await db.query.courses.findFirst({
-        where: eq(courses.id, parseInt((await params).courseId)),
-    });
-    return NextResponse.json(data);
+
+    try {
+        const courseId = parseInt((await params).courseId);
+        const course = await getCourseById(courseId);
+        return NextResponse.json(course);
+    } catch (error) {
+        console.error("Error in GET /api/courses/[courseId]:", error);
+        return new NextResponse("Internal Server Error", { status: 500 });
+    }
 };
 
 export const PUT = async (
@@ -26,12 +28,15 @@ export const PUT = async (
         return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const body = await req.json();
-    const data = await db.update(courses).set({
-        ...body,
-    }).where(eq(courses.id, parseInt((await params).courseId))).returning();
-
-    return NextResponse.json(data[0]);
+    try {
+        const courseId = parseInt((await params).courseId);
+        const body = await req.json();
+        const updatedCourse = await updateCourse(courseId, body);
+        return NextResponse.json(updatedCourse);
+    } catch (error) {
+        console.error("Error in PUT /api/courses/[courseId]:", error);
+        return new NextResponse("Internal Server Error", { status: 500 });
+    }
 };
 
 export const DELETE = async (
@@ -41,8 +46,13 @@ export const DELETE = async (
     if (!await getIsAdmin()) {
         return new NextResponse("Unauthorized", { status: 401 });
     }
-    const data = await db.delete(courses)
-        .where(eq(courses.id, parseInt((await params).courseId))).returning();
 
-    return NextResponse.json(data[0]);
+    try {
+        const courseId = parseInt((await params).courseId);
+        const deletedCourse = await deleteCourse(courseId);
+        return NextResponse.json(deletedCourse);
+    } catch (error) {
+        console.error("Error in DELETE /api/courses/[courseId]:", error);
+        return new NextResponse("Internal Server Error", { status: 500 });
+    }
 };

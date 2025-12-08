@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
-
-import db from "@/db/drizzle";
-import { challengeOptions } from "@/db/schema";
 import { getIsAdmin } from "@/lib/admin";
+import { getAllChallengeOptions, createChallengeOption } from "@/lib/controllers/challenge-option.controller";
 
 export const GET = async (req: Request) => {
     if (!await getIsAdmin()) {
@@ -11,34 +9,17 @@ export const GET = async (req: Request) => {
 
     try {
         const { searchParams } = new URL(req.url);
-        const textFilter = searchParams.get('text');
-        const correctFilter = searchParams.get('correct');
-        const challengeIdFilter = searchParams.get('challengeId');
+        const params = {
+            text: searchParams.get('text') || undefined,
+            correct: searchParams.get('correct') ? searchParams.get('correct') === 'true' : undefined,
+            challengeId: searchParams.get('challengeId') ? parseInt(searchParams.get('challengeId')!) : undefined,
+        };
 
-        let data;
-        if (textFilter || correctFilter || challengeIdFilter) {
-            data = await db.query.challengeOptions.findMany({
-                where: (challengeOptions, { ilike, eq, and }) => {
-                    const conditions = [];
-                    if (textFilter) {
-                        conditions.push(ilike(challengeOptions.text, `%${textFilter}%`));
-                    }
-                    if (correctFilter) {
-                        conditions.push(eq(challengeOptions.correct, correctFilter === 'true'));
-                    }
-                    if (challengeIdFilter) {
-                        conditions.push(eq(challengeOptions.challengeId, parseInt(challengeIdFilter)));
-                    }
-                    return conditions.length > 1 ? and(...conditions) : conditions[0];
-                }
-            });
-        } else {
-            data = await db.query.challengeOptions.findMany();
-        }
+        const data = await getAllChallengeOptions(params);
 
         return NextResponse.json(data);
     } catch (error) {
-        console.error("Error fetching challenge options:", error);
+        console.error("Error in GET /api/challengeOptions:", error);
         return new NextResponse("Internal Server Error", { status: 500 });
     }
 }
@@ -48,14 +29,15 @@ export const POST = async (req: Request) => {
         return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const body = await req.json();
+    try {
+        const body = await req.json();
+        const { id, ...challengeOptionData } = body;
 
-    // Remove id from body to let database auto-generate it
-    const { id, ...challengeOptionData } = body;
+        const data = await createChallengeOption(challengeOptionData);
 
-    const data = await db.insert(challengeOptions).values({
-        ...challengeOptionData,
-    }).returning();
-
-    return NextResponse.json(data[0]);
+        return NextResponse.json(data);
+    } catch (error) {
+        console.error("Error in POST /api/challengeOptions:", error);
+        return new NextResponse("Internal Server Error", { status: 500 });
+    }
 }

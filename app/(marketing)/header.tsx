@@ -27,8 +27,8 @@ export const Header = () => {
                     <SignedOut>
                         <SignInButton
                             mode="modal"
-                            afterSignInUrl="/learn"
-                            afterSignUpUrl="/learn"
+                            afterSignInUrl="/dashboard"
+                            afterSignUpUrl="/dashboard"
                         >
                             <Button>
                                 Sign in

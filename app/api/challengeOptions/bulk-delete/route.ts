@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
-import db from "@/db/drizzle";
-import { challengeOptions } from "@/db/schema";
 import { getIsAdmin } from "@/lib/admin";
-import { inArray } from "drizzle-orm";
+import { bulkDeleteChallengeOptions } from "@/lib/controllers/challenge-option.controller";
 
 export const DELETE = async (req: Request) => {
     if (!await getIsAdmin()) {
@@ -17,24 +15,16 @@ export const DELETE = async (req: Request) => {
             return new NextResponse("Invalid or missing ids array", { status: 400 });
         }
 
-        console.log(`🗑️ DELETE /api/challengeOptions/bulk-delete - Request received`);
-        console.log("📝 IDs to delete:", ids);
-
-        // Convert string IDs to integers
         const numericIds = ids.map(id => parseInt(id.toString()));
+        const deletedOptions = await bulkDeleteChallengeOptions(numericIds);
 
-        const deletedOptions = await db.delete(challengeOptions)
-            .where(inArray(challengeOptions.id, numericIds))
-            .returning();
-
-        console.log(`✅ DELETE /api/challengeOptions/bulk-delete - ${deletedOptions.length} challenge options deleted successfully`);
-        return NextResponse.json({ 
-            success: true, 
+        return NextResponse.json({
+            success: true,
             deletedCount: deletedOptions.length,
-            deletedOptions 
+            deletedOptions
         });
     } catch (error) {
-        console.error("Error bulk deleting challenge options:", error);
+        console.error("Error in DELETE /api/challengeOptions/bulk-delete:", error);
         return new NextResponse("Internal Server Error", { status: 500 });
     }
 };
