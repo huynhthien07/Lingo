@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth, currentUser } from "@clerk/nextjs/server";
-import { upsertUserToUsersTable } from "@/lib/user-management";
+import { trackUserLogin, getUserInfo } from "@/lib/controllers/auth.controller";
 
 /**
  * API endpoint to handle user login tracking
@@ -15,10 +15,7 @@ export const POST = async () => {
             return new NextResponse("Unauthorized", { status: 401 });
         }
 
-        // Save/update user information in the users table
-        const savedUser = await upsertUserToUsersTable();
-
-        console.log(`✅ User login tracked: ${savedUser.userName} (${savedUser.email})`);
+        const savedUser = await trackUserLogin(userId, user);
 
         return NextResponse.json({
             success: true,
@@ -34,7 +31,7 @@ export const POST = async () => {
             }
         });
     } catch (error) {
-        console.error("Error tracking user login:", error);
+        console.error("Error in POST /api/auth/login:", error);
         return new NextResponse("Internal Server Error", { status: 500 });
     }
 };
@@ -50,23 +47,14 @@ export const GET = async () => {
             return new NextResponse("Unauthorized", { status: 401 });
         }
 
-        // Check if user exists and get their info
-        const savedUser = await upsertUserToUsersTable();
+        const userInfo = await getUserInfo(userId);
 
         return NextResponse.json({
             exists: true,
-            user: {
-                id: savedUser.id,
-                userId: savedUser.userId,
-                userName: savedUser.userName,
-                email: savedUser.email,
-                status: savedUser.status,
-                role: savedUser.role,
-                lastLoginAt: savedUser.lastLoginAt,
-            }
+            user: userInfo
         });
     } catch (error) {
-        console.error("Error checking user existence:", error);
+        console.error("Error in GET /api/auth/login:", error);
         return NextResponse.json({
             exists: false,
             error: "Failed to check user existence"

@@ -5,14 +5,15 @@ import {
     SimpleForm,
     TextInput,
     SelectInput,
-    DateTimeInput,
+    PasswordInput,
     required,
+    email,
     useNotify,
     useRedirect,
     SaveButton,
     Toolbar,
 } from "react-admin";
-import { Box, Typography, Card, CardContent } from "@mui/material";
+import { Box, Typography, Card, CardContent, Alert } from "@mui/material";
 
 const UserCreateToolbar = () => (
     <Toolbar>
@@ -47,35 +48,42 @@ export const AdminUserCreate = () => {
             <SimpleForm toolbar={<UserCreateToolbar />}>
                 <Box sx={{ width: '100%', maxWidth: 800 }}>
                     <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#374151' }}>
-                        Create New User
+                        Create New User via Clerk
                     </Typography>
-                    
+
+                    <Alert severity="info" sx={{ mb: 3 }}>
+                        This will create a new user in Clerk and sync to the database.
+                        If password is not provided, Clerk will send a verification email to the user.
+                    </Alert>
+
                     <Card sx={{ mb: 3 }}>
                         <CardContent>
                             <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#374151' }}>
                                 Basic Information
                             </Typography>
-                            
+
                             <Box sx={{ display: 'flex', gap: 3, mb: 3 }}>
-                                <Box sx={{ flex: 1 }}>
-                                    <TextInput
-                                        source="userName"
-                                        label="User Name"
-                                        validate={required()}
-                                        fullWidth
-                                    />
-                                </Box>
                                 <Box sx={{ flex: 1 }}>
                                     <TextInput
                                         source="email"
                                         label="Email"
-                                        validate={required()}
+                                        validate={[required(), email()]}
                                         fullWidth
                                         type="email"
+                                        helperText="User's email address (required)"
+                                    />
+                                </Box>
+                                <Box sx={{ flex: 1 }}>
+                                    <TextInput
+                                        source="userName"
+                                        label="Username"
+                                        validate={required()}
+                                        fullWidth
+                                        helperText="Unique username (required)"
                                     />
                                 </Box>
                             </Box>
-                            
+
                             <Box sx={{ display: 'flex', gap: 3, mb: 3 }}>
                                 <Box sx={{ flex: 1 }}>
                                     <TextInput
@@ -93,136 +101,34 @@ export const AdminUserCreate = () => {
                                 </Box>
                             </Box>
 
-                            <TextInput
-                                source="userId"
-                                label="User ID (Clerk)"
-                                validate={required()}
+                            <PasswordInput
+                                source="password"
+                                label="Password (Optional)"
                                 fullWidth
-                                helperText="Enter the Clerk user ID for this user"
+                                helperText="Leave empty to send verification email instead"
                             />
-                        </CardContent>
-                    </Card>
-
-                    <Card sx={{ mb: 3 }}>
-                        <CardContent>
-                            <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#374151' }}>
-                                Account Settings
-                            </Typography>
-                            
-                            <Box sx={{ display: 'flex', gap: 3, mb: 3 }}>
-                                <Box sx={{ flex: 1 }}>
-                                    <SelectInput
-                                        source="status"
-                                        label="Status"
-                                        choices={[
-                                            { id: 'active', name: 'Active' },
-                                            { id: 'blocked', name: 'Blocked' },
-                                            { id: 'suspended', name: 'Suspended' },
-                                        ]}
-                                        defaultValue="active"
-                                        validate={required()}
-                                        fullWidth
-                                    />
-                                </Box>
-                                <Box sx={{ flex: 1 }}>
-                                    <SelectInput
-                                        source="role"
-                                        label="Role"
-                                        choices={[
-                                            { id: 'user', name: 'User' },
-                                            { id: 'premium', name: 'Premium' },
-                                        ]}
-                                        defaultValue="user"
-                                        validate={required()}
-                                        fullWidth
-                                    />
-                                </Box>
-                            </Box>
-
-                            <TextInput
-                                source="userImageSrc"
-                                label="Profile Image URL"
-                                fullWidth
-                                defaultValue="/mascot.svg"
-                                helperText="URL to the user's profile image"
-                            />
-                        </CardContent>
-                    </Card>
-
-                    <Card sx={{ mb: 3 }}>
-                        <CardContent>
-                            <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#374151' }}>
-                                Contact Information
-                            </Typography>
-                            
-                            <Box sx={{ display: 'flex', gap: 3, mb: 3 }}>
-                                <Box sx={{ flex: 1 }}>
-                                    <TextInput
-                                        source="phoneNumber"
-                                        label="Phone Number"
-                                        fullWidth
-                                    />
-                                </Box>
-                                <Box sx={{ flex: 1 }}>
-                                    <TextInput
-                                        source="country"
-                                        label="Country"
-                                        fullWidth
-                                    />
-                                </Box>
-                            </Box>
-                            
-                            <Box sx={{ display: 'flex', gap: 3 }}>
-                                <Box sx={{ flex: 1 }}>
-                                    <SelectInput
-                                        source="language"
-                                        label="Preferred Language"
-                                        choices={[
-                                            { id: 'en', name: 'English' },
-                                            { id: 'es', name: 'Spanish' },
-                                            { id: 'fr', name: 'French' },
-                                            { id: 'de', name: 'German' },
-                                            { id: 'it', name: 'Italian' },
-                                            { id: 'pt', name: 'Portuguese' },
-                                        ]}
-                                        defaultValue="en"
-                                        fullWidth
-                                    />
-                                </Box>
-                                <Box sx={{ flex: 1 }}>
-                                    <TextInput
-                                        source="timezone"
-                                        label="Timezone"
-                                        fullWidth
-                                    />
-                                </Box>
-                            </Box>
                         </CardContent>
                     </Card>
 
                     <Card>
                         <CardContent>
                             <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#374151' }}>
-                                Optional Information
+                                Account Settings
                             </Typography>
-                            
-                            <Box sx={{ display: 'flex', gap: 3 }}>
-                                <Box sx={{ flex: 1 }}>
-                                    <DateTimeInput
-                                        source="dateOfBirth"
-                                        label="Date of Birth"
-                                        fullWidth
-                                    />
-                                </Box>
-                                <Box sx={{ flex: 1 }}>
-                                    <DateTimeInput
-                                        source="lastLoginAt"
-                                        label="Last Login"
-                                        fullWidth
-                                        helperText="Leave empty if user has never logged in"
-                                    />
-                                </Box>
-                            </Box>
+
+                            <SelectInput
+                                source="role"
+                                label="Role"
+                                choices={[
+                                    { id: 'STUDENT', name: 'Student' },
+                                    { id: 'TEACHER', name: 'Teacher' },
+                                    { id: 'ADMIN', name: 'Admin' },
+                                ]}
+                                defaultValue="STUDENT"
+                                validate={required()}
+                                fullWidth
+                                helperText="User role in the system"
+                            />
                         </CardContent>
                     </Card>
                 </Box>

@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
-
-import db from "@/db/drizzle";
-import { lessons } from "@/db/schema";
 import { getIsAdmin } from "@/lib/admin";
-import { ilike, eq, and, count, desc, asc, inArray } from "drizzle-orm";
+import { getAllLessons, createLesson } from "@/lib/controllers/lesson.controller";
 
 export const GET = async (req: Request) => {
     if (!await getIsAdmin()) {
@@ -12,85 +9,35 @@ export const GET = async (req: Request) => {
 
     try {
         const { searchParams } = new URL(req.url);
-        const titleFilter = searchParams.get('title');
-        const unitIdFilter = searchParams.get('unitId');
+
+        // Parse filter parameter
+        let filter;
         const filterParam = searchParams.get('filter');
-
-        // Pagination parameters
-        const page = parseInt(searchParams.get('_page') || '1', 10);
-        const limit = parseInt(searchParams.get('_limit') || '25', 10);
-        const offset = (page - 1) * limit;
-
-        // Sorting parameters
-        const sortField = searchParams.get('_sort') || 'order';
-        const sortOrder = searchParams.get('_order') || 'asc';
-
-        // Build where conditions
-        const conditions = [];
-
-        // Handle React Admin filter parameter (JSON encoded)
         if (filterParam) {
             try {
-                const filter = JSON.parse(decodeURIComponent(filterParam));
-
-                // Handle id array filter (for ReferenceInput)
-                if (filter.id && Array.isArray(filter.id)) {
-                    conditions.push(inArray(lessons.id, filter.id.map((id: any) => parseInt(id))));
-                }
-
-                // Handle other filters from the parsed filter object
-                if (filter.title) {
-                    conditions.push(ilike(lessons.title, `%${filter.title}%`));
-                }
-                if (filter.unitId) {
-                    conditions.push(eq(lessons.unitId, parseInt(filter.unitId)));
-                }
+                filter = JSON.parse(decodeURIComponent(filterParam));
             } catch (e) {
                 console.warn('Failed to parse filter parameter:', e);
             }
         }
 
-        // Handle direct filter parameters (for backward compatibility)
-        if (titleFilter) {
-            conditions.push(ilike(lessons.title, `%${titleFilter}%`));
-        }
-        if (unitIdFilter) {
-            conditions.push(eq(lessons.unitId, parseInt(unitIdFilter)));
-        }
+        const params = {
+            title: searchParams.get('title') || undefined,
+            unitId: searchParams.get('unitId') ? parseInt(searchParams.get('unitId')!) : undefined,
+            filter: filter,
+            page: parseInt(searchParams.get('_page') || '1', 10),
+            limit: parseInt(searchParams.get('_limit') || '25', 10),
+            sortField: searchParams.get('_sort') || 'order',
+            sortOrder: (searchParams.get('_order') || 'asc') as 'asc' | 'desc',
+        };
 
-        const whereCondition = conditions.length > 0 ?
-            (conditions.length > 1 ? and(...conditions) : conditions[0]) :
-            undefined;
+        const result = await getAllLessons(params);
 
-        // Get total count for pagination
-        const totalResult = await db.select({ count: count() })
-            .from(lessons)
-            .where(whereCondition);
-        const total = totalResult[0]?.count || 0;
-
-        // Determine sort order
-        const orderBy = sortField === 'order' ?
-            (sortOrder === 'desc' ? desc(lessons.order) : asc(lessons.order)) :
-            sortField === 'title' ?
-                (sortOrder === 'desc' ? desc(lessons.title) : asc(lessons.title)) :
-                asc(lessons.id);
-
-        // Get paginated data with relations
-        const data = await db.query.lessons.findMany({
-            where: whereCondition,
-            with: {
-                unit: true,
-            },
-            orderBy: [orderBy],
-            limit: limit,
-            offset: offset,
-        });
-
-        const response = NextResponse.json(data);
-        response.headers.set('x-total-count', total.toString());
+        const response = NextResponse.json(result.data);
+        response.headers.set('x-total-count', result.total.toString());
         return response;
     } catch (error) {
-        console.error("Error fetching lessons:", error);
+        console.error("Error in GET /api/lessons:", error);
         return new NextResponse("Internal Server Error", { status: 500 });
     }
 }
@@ -100,14 +47,15 @@ export const POST = async (req: Request) => {
         return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const body = await req.json();
+    try {
+        const body = await req.json();
+        const { id, ...lessonData } = body;
 
-    // Remove id from body to let database auto-generate it
-    const { id, ...lessonData } = body;
+        const newLesson = await createLesson(lessonData);
 
-    const data = await db.insert(lessons).values({
-        ...lessonData,
-    }).returning();
-
-    return NextResponse.json(data[0]);
+        return NextResponse.json(newLesson);
+    } catch (error) {
+        console.error("Error in POST /api/lessons:", error);
+        return new NextResponse("Internal Server Error", { status: 500 });
+    }
 }

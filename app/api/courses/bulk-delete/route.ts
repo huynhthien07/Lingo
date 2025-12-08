@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
-import db from "@/db/drizzle";
-import { courses } from "@/db/schema";
 import { getIsAdmin } from "@/lib/admin";
-import { inArray } from "drizzle-orm";
+import { bulkDeleteCourses } from "@/lib/controllers/course.controller";
 
 export const DELETE = async (req: Request) => {
     if (!await getIsAdmin()) {
@@ -17,24 +15,16 @@ export const DELETE = async (req: Request) => {
             return new NextResponse("Invalid or missing ids array", { status: 400 });
         }
 
-        console.log(`🗑️ DELETE /api/courses/bulk-delete - Request received`);
-        console.log("📝 IDs to delete:", ids);
-
-        // Convert string IDs to integers
         const numericIds = ids.map(id => parseInt(id.toString()));
+        const deletedCourses = await bulkDeleteCourses(numericIds);
 
-        const deletedCourses = await db.delete(courses)
-            .where(inArray(courses.id, numericIds))
-            .returning();
-
-        console.log(`✅ DELETE /api/courses/bulk-delete - ${deletedCourses.length} courses deleted successfully`);
-        return NextResponse.json({ 
-            success: true, 
+        return NextResponse.json({
+            success: true,
             deletedCount: deletedCourses.length,
-            deletedCourses 
+            deletedCourses
         });
     } catch (error) {
-        console.error("Error bulk deleting courses:", error);
+        console.error("Error in DELETE /api/courses/bulk-delete:", error);
         return new NextResponse("Internal Server Error", { status: 500 });
     }
 };

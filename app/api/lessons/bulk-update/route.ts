@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
-import db from "@/db/drizzle";
-import { lessons } from "@/db/schema";
 import { getIsAdmin } from "@/lib/admin";
-import { eq, inArray } from "drizzle-orm";
+import { bulkUpdateLessons } from "@/lib/controllers/lesson.controller";
 
 export const PUT = async (req: Request) => {
     if (!await getIsAdmin()) {
@@ -17,19 +15,16 @@ export const PUT = async (req: Request) => {
             return new NextResponse("Invalid ids provided", { status: 400 });
         }
 
-        // Update multiple lessons
-        const result = await db.update(lessons)
-            .set(data)
-            .where(inArray(lessons.id, ids.map(id => parseInt(id))))
-            .returning();
+        const numericIds = ids.map((id: any) => parseInt(id));
+        const result = await bulkUpdateLessons(numericIds, data);
 
-        return NextResponse.json({ 
-            success: true, 
+        return NextResponse.json({
+            success: true,
             updated: result.length,
-            data: result 
+            data: result
         });
     } catch (error) {
-        console.error("Error bulk updating lessons:", error);
+        console.error("Error in PUT /api/lessons/bulk-update:", error);
         return new NextResponse("Internal Server Error", { status: 500 });
     }
 };

@@ -1,9 +1,6 @@
-import db from '@/db/drizzle';
-import { units } from '@/db/schema';
 import { getIsAdmin } from '@/lib/admin';
-import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
-
+import { getUnitById, updateUnit, deleteUnit } from '@/lib/controllers/unit.controller';
 
 export const GET = async (
     req: Request,
@@ -12,10 +9,15 @@ export const GET = async (
     if (!await getIsAdmin()) {
         return new NextResponse("Unauthorized", { status: 401 });
     }
-    const data = await db.query.units.findFirst({
-        where: eq(units.id, parseInt((await params).unitId)),
-    });
-    return NextResponse.json(data);
+
+    try {
+        const unitId = parseInt((await params).unitId);
+        const unit = await getUnitById(unitId);
+        return NextResponse.json(unit);
+    } catch (error) {
+        console.error("Error in GET /api/units/[unitId]:", error);
+        return new NextResponse("Internal Server Error", { status: 500 });
+    }
 };
 
 export const PUT = async (
@@ -26,12 +28,15 @@ export const PUT = async (
         return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const body = await req.json();
-    const data = await db.update(units).set({
-        ...body,
-    }).where(eq(units.id, parseInt((await params).unitId))).returning();
-
-    return NextResponse.json(data[0]);
+    try {
+        const unitId = parseInt((await params).unitId);
+        const body = await req.json();
+        const updatedUnit = await updateUnit(unitId, body);
+        return NextResponse.json(updatedUnit);
+    } catch (error) {
+        console.error("Error in PUT /api/units/[unitId]:", error);
+        return new NextResponse("Internal Server Error", { status: 500 });
+    }
 };
 
 export const DELETE = async (
@@ -41,8 +46,13 @@ export const DELETE = async (
     if (!await getIsAdmin()) {
         return new NextResponse("Unauthorized", { status: 401 });
     }
-    const data = await db.delete(units)
-        .where(eq(units.id, parseInt((await params).unitId))).returning();
 
-    return NextResponse.json(data[0]);
+    try {
+        const unitId = parseInt((await params).unitId);
+        const deletedUnit = await deleteUnit(unitId);
+        return NextResponse.json(deletedUnit);
+    } catch (error) {
+        console.error("Error in DELETE /api/units/[unitId]:", error);
+        return new NextResponse("Internal Server Error", { status: 500 });
+    }
 };

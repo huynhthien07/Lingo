@@ -20,20 +20,35 @@ export const useTheme = () => {
   return context;
 };
 
-// Light theme configuration
+// Light theme configuration with custom color palette
 const lightTheme = createTheme({
   ...defaultTheme,
   palette: {
     mode: 'light',
     primary: {
-      main: '#1976d2',
-      light: '#42a5f5',
-      dark: '#1565c0',
+      main: '#18AA26', // Primary Green
+      light: '#8CB841', // Sub Primary Light Green
+      dark: '#148A1F',
     },
     secondary: {
-      main: '#dc004e',
-      light: '#ff5983',
-      dark: '#9a0036',
+      main: '#8CB841', // Sub Primary
+      light: '#A5D65E',
+      dark: '#7AA636',
+    },
+    warning: {
+      main: '#FF9B2F', // Warning Orange
+      light: '#FFB05C',
+      dark: '#E68A2A',
+    },
+    error: {
+      main: '#FB4141', // Failed/Error Red
+      light: '#FC6868',
+      dark: '#E23A3A',
+    },
+    success: {
+      main: '#18AA26', // Same as primary
+      light: '#8CB841',
+      dark: '#148A1F',
     },
     background: {
       default: '#f5f5f5',
@@ -55,8 +70,24 @@ const lightTheme = createTheme({
     MuiAppBar: {
       styleOverrides: {
         root: {
-          backgroundColor: '#1976d2',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          backgroundColor: '#18AA26', // Primary Green
+          boxShadow: '0 2px 4px rgba(24, 170, 38, 0.2)',
+        },
+      },
+    },
+    MuiButton: {
+      styleOverrides: {
+        containedPrimary: {
+          backgroundColor: '#18AA26',
+          '&:hover': {
+            backgroundColor: '#148A1F',
+          },
+        },
+        containedSecondary: {
+          backgroundColor: '#8CB841',
+          '&:hover': {
+            backgroundColor: '#7AA636',
+          },
         },
       },
     },
@@ -75,23 +106,58 @@ const lightTheme = createTheme({
         },
       },
     },
+    MuiChip: {
+      styleOverrides: {
+        colorPrimary: {
+          backgroundColor: '#18AA26',
+          color: '#ffffff',
+        },
+        colorSecondary: {
+          backgroundColor: '#8CB841',
+          color: '#ffffff',
+        },
+        colorWarning: {
+          backgroundColor: '#FF9B2F',
+          color: '#ffffff',
+        },
+        colorError: {
+          backgroundColor: '#FB4141',
+          color: '#ffffff',
+        },
+      },
+    },
   },
 });
 
-// Dark theme configuration
+// Dark theme configuration with custom color palette
 const darkTheme = createTheme({
   ...defaultTheme,
   palette: {
     mode: 'dark',
     primary: {
-      main: '#90caf9',
-      light: '#bbdefb',
-      dark: '#42a5f5',
+      main: '#18AA26', // Primary Green (same in dark mode)
+      light: '#8CB841',
+      dark: '#148A1F',
     },
     secondary: {
-      main: '#f48fb1',
-      light: '#f8bbd9',
-      dark: '#f06292',
+      main: '#8CB841', // Sub Primary
+      light: '#A5D65E',
+      dark: '#7AA636',
+    },
+    warning: {
+      main: '#FF9B2F', // Warning Orange
+      light: '#FFB05C',
+      dark: '#E68A2A',
+    },
+    error: {
+      main: '#FB4141', // Failed/Error Red
+      light: '#FC6868',
+      dark: '#E23A3A',
+    },
+    success: {
+      main: '#18AA26',
+      light: '#8CB841',
+      dark: '#148A1F',
     },
     background: {
       default: '#121212',
@@ -133,8 +199,24 @@ const darkTheme = createTheme({
       styleOverrides: {
         root: {
           backgroundColor: '#1e1e1e !important',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+          boxShadow: '0 2px 4px rgba(24, 170, 38, 0.2)',
           color: '#ffffff',
+        },
+      },
+    },
+    MuiButton: {
+      styleOverrides: {
+        containedPrimary: {
+          backgroundColor: '#18AA26',
+          '&:hover': {
+            backgroundColor: '#148A1F',
+          },
+        },
+        containedSecondary: {
+          backgroundColor: '#8CB841',
+          '&:hover': {
+            backgroundColor: '#7AA636',
+          },
         },
       },
     },
@@ -193,6 +275,22 @@ const darkTheme = createTheme({
       styleOverrides: {
         root: {
           backgroundColor: '#333333',
+          color: '#ffffff',
+        },
+        colorPrimary: {
+          backgroundColor: '#18AA26',
+          color: '#ffffff',
+        },
+        colorSecondary: {
+          backgroundColor: '#8CB841',
+          color: '#ffffff',
+        },
+        colorWarning: {
+          backgroundColor: '#FF9B2F',
+          color: '#ffffff',
+        },
+        colorError: {
+          backgroundColor: '#FB4141',
           color: '#ffffff',
         },
       },

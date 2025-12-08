@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
-
-import db from "@/db/drizzle";
-import { units } from "@/db/schema";
 import { getIsAdmin } from "@/lib/admin";
+import { getAllUnits, createUnit } from "@/lib/controllers/unit.controller";
 
 export const GET = async (req: Request) => {
     if (!await getIsAdmin()) {
@@ -11,34 +9,23 @@ export const GET = async (req: Request) => {
 
     try {
         const { searchParams } = new URL(req.url);
-        const titleFilter = searchParams.get('title');
-        const descriptionFilter = searchParams.get('description');
-        const courseIdFilter = searchParams.get('courseId');
+        const params = {
+            title: searchParams.get('title') || undefined,
+            description: searchParams.get('description') || undefined,
+            courseId: searchParams.get('courseId') ? parseInt(searchParams.get('courseId')!) : undefined,
+            page: parseInt(searchParams.get('_page') || '1', 10),
+            limit: parseInt(searchParams.get('_limit') || '25', 10),
+            sortField: searchParams.get('_sort') || 'order',
+            sortOrder: (searchParams.get('_order') || 'asc') as 'asc' | 'desc',
+        };
 
-        let data;
-        if (titleFilter || descriptionFilter || courseIdFilter) {
-            data = await db.query.units.findMany({
-                where: (units, { ilike, eq, and }) => {
-                    const conditions = [];
-                    if (titleFilter) {
-                        conditions.push(ilike(units.title, `%${titleFilter}%`));
-                    }
-                    if (descriptionFilter) {
-                        conditions.push(ilike(units.description, `%${descriptionFilter}%`));
-                    }
-                    if (courseIdFilter) {
-                        conditions.push(eq(units.courseId, parseInt(courseIdFilter)));
-                    }
-                    return conditions.length > 1 ? and(...conditions) : conditions[0];
-                }
-            });
-        } else {
-            data = await db.query.units.findMany();
-        }
+        const result = await getAllUnits(params);
 
-        return NextResponse.json(data);
+        const response = NextResponse.json(result.data);
+        response.headers.set('x-total-count', result.total.toString());
+        return response;
     } catch (error) {
-        console.error("Error fetching units:", error);
+        console.error("Error in GET /api/units:", error);
         return new NextResponse("Internal Server Error", { status: 500 });
     }
 }
@@ -48,14 +35,15 @@ export const POST = async (req: Request) => {
         return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const body = await req.json();
+    try {
+        const body = await req.json();
+        const { id, ...unitData } = body;
 
-    // Remove id from body to let database auto-generate it
-    const { id, ...unitData } = body;
+        const newUnit = await createUnit(unitData);
 
-    const data = await db.insert(units).values({
-        ...unitData,
-    }).returning();
-
-    return NextResponse.json(data[0]);
+        return NextResponse.json(newUnit);
+    } catch (error) {
+        console.error("Error in POST /api/units:", error);
+        return new NextResponse("Internal Server Error", { status: 500 });
+    }
 }

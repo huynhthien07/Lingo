@@ -55,7 +55,7 @@ export const upsertUserToUsersTable = async () => {
                     firstName: firstName,
                     lastName: lastName,
                     status: "active",
-                    role: "user",
+                    role: "STUDENT", // Default role for new users
                     language: "en", // Default language
                     lastLoginAt: new Date(),
                 })

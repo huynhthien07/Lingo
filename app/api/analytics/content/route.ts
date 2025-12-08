@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getIsAdmin } from "@/lib/admin";
 import db from "@/db/drizzle";
-import { courses, units, lessons, challenges, userProgress } from "@/db/schema";
+import { courses, units, lessons, challenges, users } from "@/db/schema";
 import { count, eq } from "drizzle-orm";
 
 export const GET = async () => {
@@ -23,7 +23,7 @@ export const GET = async () => {
             db.select({ count: count() }).from(units),
             db.select({ count: count() }).from(lessons),
             db.select({ count: count() }).from(challenges),
-            db.select({ count: count() }).from(userProgress).where(eq(userProgress.blocked, true))
+            db.select({ count: count() }).from(users).where(eq(users.status, 'blocked'))
         ]);
 
         const contentStats = {

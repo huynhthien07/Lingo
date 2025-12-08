@@ -190,8 +190,9 @@ export const AdminUserEdit = () => {
                                         source="role"
                                         label="Role"
                                         choices={[
-                                            { id: 'user', name: 'User' },
-                                            { id: 'premium', name: 'Premium' },
+                                            { id: 'STUDENT', name: 'Student' },
+                                            { id: 'TEACHER', name: 'Teacher' },
+                                            { id: 'ADMIN', name: 'Admin' },
                                         ]}
                                         validate={required()}
                                         fullWidth
@@ -238,6 +239,7 @@ export const AdminUserEdit = () => {
                                         label="Preferred Language"
                                         choices={[
                                             { id: 'en', name: 'English' },
+                                            { id: 'vi', name: 'Vietnamese' },
                                             { id: 'es', name: 'Spanish' },
                                             { id: 'fr', name: 'French' },
                                             { id: 'de', name: 'German' },

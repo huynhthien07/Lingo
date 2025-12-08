@@ -1,16 +1,26 @@
 import { Menu, MenuItemLink, useSidebarState } from 'react-admin';
 import {
     Dashboard,
-    School,
-    MenuBook,
-    Assignment,
-    Quiz,
-    RadioButtonChecked,
     People,
-    BarChart
+    Security,
+    Language,
+    Settings,
+    AdminPanelSettings
 } from '@mui/icons-material';
 import { Box, Typography, Divider } from '@mui/material';
 
+/**
+ * Custom Admin Menu - User & Account Management Focus
+ *
+ * Admin Area Structure:
+ * - Dashboard: Overview of users, roles, system stats
+ * - User Management: User list, detail, edit, change status (UC34)
+ * - Role Permission Management: Manage roles and permissions (RBAC)
+ * - Language Pack Management: Multi-language UI support (UC36, BR141-BR144)
+ * - System Settings: General system configuration
+ *
+ * Reference: NIST RBAC Model for role-based access control
+ */
 export const CustomMenu = () => {
     const [open] = useSidebarState();
 
@@ -43,11 +53,12 @@ export const CustomMenu = () => {
                         Admin Panel
                     </Typography>
                     <Typography variant="body2" sx={{ color: '#666', mt: 0.5 }}>
-                        Language Learning Management
+                        User & Account Management
                     </Typography>
                 </Box>
             )}
 
+            {/* Dashboard */}
             <MenuItemLink
                 to="/"
                 primaryText="Dashboard"
@@ -56,48 +67,34 @@ export const CustomMenu = () => {
 
             <Divider sx={{ my: 1 }} />
 
+            {/* User Management Section */}
             <MenuItemLink
-                to="/courses"
-                primaryText="Courses"
-                leftIcon={<School />}
+                to="/users"
+                primaryText="User Management"
+                leftIcon={<People />}
             />
+
+            {/* Role & Permission Management */}
             <MenuItemLink
-                to="/units"
-                primaryText="Units"
-                leftIcon={<MenuBook />}
-            />
-            <MenuItemLink
-                to="/lessons"
-                primaryText="Lessons"
-                leftIcon={<Assignment />}
-            />
-            <MenuItemLink
-                to="/challenges"
-                primaryText="Challenges"
-                leftIcon={<Quiz />}
-            />
-            <MenuItemLink
-                to="/challengeOptions"
-                primaryText="Challenge Options"
-                leftIcon={<RadioButtonChecked />}
+                to="/roles"
+                primaryText="Role & Permissions"
+                leftIcon={<Security />}
             />
 
             <Divider sx={{ my: 1 }} />
 
+            {/* Language Pack Management (UC36) */}
             <MenuItemLink
-                to="/users"
-                primaryText="User Progress"
-                leftIcon={<People />}
+                to="/language-packs"
+                primaryText="Language Packs"
+                leftIcon={<Language />}
             />
+
+            {/* System Settings */}
             <MenuItemLink
-                to="/admin-users"
-                primaryText="User Management"
-                leftIcon={<People />}
-            />
-            <MenuItemLink
-                to="/statistics"
-                primaryText="Statistics"
-                leftIcon={<BarChart />}
+                to="/settings"
+                primaryText="System Settings"
+                leftIcon={<Settings />}
             />
         </Menu>
     );

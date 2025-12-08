@@ -1,9 +1,6 @@
-import db from '@/db/drizzle';
-import { challengeOptions } from '@/db/schema';
 import { getIsAdmin } from '@/lib/admin';
-import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
-
+import { getChallengeOptionById, updateChallengeOption, deleteChallengeOption } from '@/lib/controllers/challenge-option.controller';
 
 export const GET = async (
     req: Request,
@@ -12,11 +9,21 @@ export const GET = async (
     if (!await getIsAdmin()) {
         return new NextResponse("Unauthorized", { status: 401 });
     }
-    const { challengeOptionId } = await params;
-    const data = await db.query.challengeOptions.findFirst({
-        where: eq(challengeOptions.id, parseInt(challengeOptionId)),
-    });
-    return NextResponse.json(data);
+
+    try {
+        const { challengeOptionId } = await params;
+        const data = await getChallengeOptionById(parseInt(challengeOptionId));
+
+        return NextResponse.json(data);
+    } catch (error) {
+        console.error("Error in GET /api/challengeOptions/[challengeOptionId]:", error);
+
+        if (error instanceof Error && error.message === "Challenge option not found") {
+            return new NextResponse("Challenge option not found", { status: 404 });
+        }
+
+        return new NextResponse("Internal Server Error", { status: 500 });
+    }
 };
 
 export const PUT = async (
@@ -27,13 +34,21 @@ export const PUT = async (
         return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const { challengeOptionId } = await params;
-    const body = await req.json();
-    const data = await db.update(challengeOptions).set({
-        ...body,
-    }).where(eq(challengeOptions.id, parseInt(challengeOptionId))).returning();
+    try {
+        const { challengeOptionId } = await params;
+        const body = await req.json();
+        const data = await updateChallengeOption(parseInt(challengeOptionId), body);
 
-    return NextResponse.json(data[0]);
+        return NextResponse.json(data);
+    } catch (error) {
+        console.error("Error in PUT /api/challengeOptions/[challengeOptionId]:", error);
+
+        if (error instanceof Error && error.message === "Challenge option not found") {
+            return new NextResponse("Challenge option not found", { status: 404 });
+        }
+
+        return new NextResponse("Internal Server Error", { status: 500 });
+    }
 };
 
 export const DELETE = async (
@@ -43,9 +58,19 @@ export const DELETE = async (
     if (!await getIsAdmin()) {
         return new NextResponse("Unauthorized", { status: 401 });
     }
-    const { challengeOptionId } = await params;
-    const data = await db.delete(challengeOptions)
-        .where(eq(challengeOptions.id, parseInt(challengeOptionId))).returning();
 
-    return NextResponse.json(data[0]);
+    try {
+        const { challengeOptionId } = await params;
+        const data = await deleteChallengeOption(parseInt(challengeOptionId));
+
+        return NextResponse.json(data);
+    } catch (error) {
+        console.error("Error in DELETE /api/challengeOptions/[challengeOptionId]:", error);
+
+        if (error instanceof Error && error.message === "Challenge option not found") {
+            return new NextResponse("Challenge option not found", { status: 404 });
+        }
+
+        return new NextResponse("Internal Server Error", { status: 500 });
+    }
 };
