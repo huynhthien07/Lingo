@@ -53,6 +53,9 @@ export const PUT = async (
         const userIdParam = (await params).userId;
         const body = await req.json();
 
+        console.log('🔄 PUT /api/users/[userId] - Updating user:', userIdParam);
+        console.log('📝 Update data:', body);
+
         // Find user by id (number) or userId (Clerk ID string)
         let user;
         let whereClause;
@@ -63,17 +66,22 @@ export const PUT = async (
             user = await db.query.users.findFirst({
                 where: whereClause,
             });
+            console.log('🔍 Finding user by database id:', userIdParam);
         } else {
             // It's a Clerk userId
             whereClause = eq(users.userId, userIdParam);
             user = await db.query.users.findFirst({
                 where: whereClause,
             });
+            console.log('🔍 Finding user by Clerk userId:', userIdParam);
         }
 
         if (!user) {
+            console.log('❌ User not found:', userIdParam);
             return new NextResponse("User not found", { status: 404 });
         }
+
+        console.log('✅ User found:', user.userName);
 
         // Update user
         const [updatedUser] = await db
@@ -82,9 +90,12 @@ export const PUT = async (
             .where(whereClause)
             .returning();
 
+        console.log('✅ User updated successfully:', updatedUser.userName);
+        console.log('📊 Updated data:', updatedUser);
+
         return NextResponse.json(updatedUser);
     } catch (error) {
-        console.error("Error in PUT /api/users/[userId]:", error);
+        console.error("❌ Error in PUT /api/users/[userId]:", error);
         return new NextResponse("Internal Server Error", { status: 500 });
     }
 };

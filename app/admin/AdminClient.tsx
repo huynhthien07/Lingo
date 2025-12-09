@@ -19,7 +19,6 @@ import { Box, CssBaseline, GlobalStyles } from "@mui/material";
 import { AdminUserList } from "./admin-users/list";
 import { AdminUserEdit } from "./admin-users/edit";
 import { AdminUserCreate } from "./admin-users/create";
-import { AdminUserShow } from "./admin-users/show";
 import { RoleList } from "./roles/list";
 import { RoleEdit } from "./roles/edit";
 import { RoleCreate } from "./roles/create";
@@ -27,6 +26,7 @@ import { SettingsList } from "./settings/list";
 import { SettingsEdit } from "./settings/edit";
 import { CustomLayout } from "./layout/CustomLayout";
 import { Dashboard } from "./dashboard/Dashboard";
+import { useEffect } from "react";
 
 import { AdminThemeProvider, useTheme } from "./context/ThemeContext";
 
@@ -40,6 +40,37 @@ const App = () => {
 
 const AdminContent = () => {
   const { currentTheme, isDarkMode } = useTheme();
+
+  // Force redirect from old route to new route
+  useEffect(() => {
+    const hash = window.location.hash;
+    console.log('🔍 AdminContent mounted - Current hash:', hash);
+
+    // Redirect from #/users to #/admin-users
+    if (hash === '#/users' || hash.startsWith('#/users/')) {
+      const newHash = hash.replace('#/users', '#/admin-users');
+      console.log('🔄 Redirecting from', hash, 'to', newHash);
+      window.location.hash = newHash;
+    }
+
+    // Also listen for hash changes
+    const handleHashChange = () => {
+      const currentHash = window.location.hash;
+      console.log('🔍 Hash changed to:', currentHash);
+
+      if (currentHash === '#/users' || currentHash.startsWith('#/users/')) {
+        const newHash = currentHash.replace('#/users', '#/admin-users');
+        console.log('🔄 Redirecting from', currentHash, 'to', newHash);
+        window.location.hash = newHash;
+      }
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+    };
+  }, []);
 
   const darkModeStyles = isDarkMode ? {
     'html, body, #root': {
@@ -148,11 +179,10 @@ const AdminContent = () => {
         >
           {/* User Management - UC34 */}
           <Resource
-            name="users"
+            name="admin-users"
             list={AdminUserList}
             edit={AdminUserEdit}
             create={AdminUserCreate}
-            show={AdminUserShow}
             recordRepresentation="userName"
             options={{ label: "👥 User Management" }}
           />

@@ -31,7 +31,7 @@ export const PUT = async (
     { params }: { params: Promise<{ id: string }> },
 ) => {
     if (!await getIsAdmin()) {
-        return new NextResponse("Unauthorized", { status: 401 });
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     try {
@@ -46,17 +46,17 @@ export const PUT = async (
 
         if (error instanceof Error) {
             if (error.message === "User not found") {
-                return new NextResponse("User not found", { status: 404 });
+                return NextResponse.json({ error: "User not found" }, { status: 404 });
             }
             if (error.message.includes("Cannot block admin account")) {
-                return new NextResponse(error.message, { status: 403 });
+                return NextResponse.json({ error: error.message }, { status: 403 });
             }
             if (error.message.includes('duplicate key')) {
-                return new NextResponse("Email already exists", { status: 409 });
+                return NextResponse.json({ error: "Email already exists" }, { status: 409 });
             }
         }
 
-        return new NextResponse("Internal Server Error", { status: 500 });
+        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 };
 

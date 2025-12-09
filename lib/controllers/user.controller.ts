@@ -335,3 +335,200 @@ export const bulkDeleteUsers = async (
   };
 };
 
+// ============================================
+// ADMIN USER MANAGEMENT (by database ID)
+// ============================================
+
+/**
+ * Get all admin users (by database ID)
+ */
+export const getAllAdminUsers = async (filters: {
+  userName?: string;
+  email?: string;
+  role?: string;
+  status?: string;
+  page?: number;
+  limit?: number;
+  sortField?: string;
+  sortOrder?: 'asc' | 'desc';
+}) => {
+  const {
+    userName,
+    email,
+    role,
+    status,
+    page = 1,
+    limit = 25,
+    sortField = 'createdAt',
+    sortOrder = 'desc'
+  } = filters;
+
+  const offset = (page - 1) * limit;
+
+  // Build where conditions
+  const conditions = [];
+  if (userName) conditions.push(ilike(users.userName, `%${userName}%`));
+  if (email) conditions.push(ilike(users.email, `%${email}%`));
+  if (status) conditions.push(eq(users.status, status));
+  if (role) conditions.push(eq(users.role, role as any));
+
+  const whereCondition = conditions.length > 0 ? and(...conditions) : undefined;
+
+  // Get data
+  const data = await db.query.users.findMany({
+    where: whereCondition,
+    limit,
+    offset,
+    orderBy: sortOrder === 'asc'
+      ? asc(users.createdAt)
+      : desc(users.createdAt),
+  });
+
+  // Get total count
+  const [{ value: total }] = await db
+    .select({ value: count() })
+    .from(users)
+    .where(whereCondition);
+
+  return { data, total: Number(total) };
+};
+
+/**
+ * Create admin user
+ */
+export const createAdminUser = async (data: {
+  userName: string;
+  email: string;
+  password?: string;
+  firstName?: string;
+  lastName?: string;
+  role?: string;
+  status?: string;
+}) => {
+  const { userName, email, password, firstName, lastName, role = 'STUDENT', status = 'active' } = data;
+
+  if (!userName || !email) {
+    throw new Error('userName and email are required fields');
+  }
+
+  // Create in Clerk
+  const clerkUser = await createClerkUser({
+    username: userName,
+    email,
+    password,
+    firstName,
+    lastName,
+    role,
+  });
+
+  // Create in database
+  const [user] = await db.insert(users).values({
+    userId: clerkUser.id,
+    userName,
+    email,
+    firstName: firstName || null,
+    lastName: lastName || null,
+    role: role as any,
+    status: status as any,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  }).returning();
+
+  return user;
+};
+
+/**
+ * Update admin user by database ID
+ * Protects userId, id, createdAt from being changed
+ */
+export const updateAdminUser = async (id: number, data: any) => {
+  // Find user by database id
+  const user = await db.query.users.findFirst({
+    where: eq(users.id, id),
+  });
+
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  // Check if trying to block admin
+  if (data.status === 'blocked' && isProtectedAdmin(user.userId)) {
+    throw new Error("Cannot block admin account");
+  }
+
+  // Remove protected fields from update data
+  // Strip id, userId, createdAt, updatedAt, lastLoginAt
+  const { id: _, userId, createdAt, updatedAt, lastLoginAt, ...updateData } = data;
+
+  console.log('🔄 updateAdminUser - User ID:', id);
+  console.log('🔄 updateAdminUser - Update data:', updateData);
+
+  // Update in database
+  const [updated] = await db
+    .update(users)
+    .set({
+      ...updateData,
+      updatedAt: new Date(),
+    })
+    .where(eq(users.id, id))
+    .returning();
+
+  console.log('✅ updateAdminUser - Updated user:', updated);
+
+  return updated;
+};
+
+/**
+ * Delete admin user by database ID
+ * Cannot delete protected admin accounts
+ */
+export const deleteAdminUser = async (id: number) => {
+  // Find user by database id
+  const user = await db.query.users.findFirst({
+    where: eq(users.id, id),
+  });
+
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  // Cannot delete protected admin accounts
+  if (isProtectedAdmin(user.userId)) {
+    throw new Error("Cannot delete protected admin account");
+  }
+
+  console.log('🗑️ deleteAdminUser - Deleting user ID:', id);
+
+  // Delete from Clerk first
+  try {
+    await deleteClerkUser(user.userId);
+  } catch (error) {
+    console.error('⚠️ Error deleting from Clerk:', error);
+    // Continue with database deletion even if Clerk deletion fails
+  }
+
+  // Delete from database
+  await db.delete(users).where(eq(users.id, id));
+
+  console.log('✅ deleteAdminUser - User deleted:', id);
+
+  return { success: true };
+};
+
+/**
+ * Get admin user by database ID
+ */
+export const getAdminUserById = async (id: number) => {
+  const user = await db.query.users.findFirst({
+    where: eq(users.id, id),
+  });
+
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  console.log('🔍 getAdminUserById - User data:', user);
+  console.log('🔍 getAdminUserById - userId field:', user.userId);
+
+  return user;
+};

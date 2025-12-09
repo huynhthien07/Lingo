@@ -9,25 +9,29 @@ import {
     required,
     useNotify,
     useRefresh,
-    useRedirect,
     SaveButton,
     Toolbar,
     DeleteButton,
     useRecordContext,
 } from "react-admin";
 import { Box, Typography, Card, CardContent, Alert } from "@mui/material";
+import { useQueryClient } from '@tanstack/react-query';
 
 // Admin user IDs that cannot be blocked
 const adminIds = [
     "user_2tkC1z5zJJ4Sw2b85JXWEqmNeuY",
 ];
 
-const UserEditToolbar = () => (
-    <Toolbar>
-        <SaveButton />
-        <DeleteButton />
-    </Toolbar>
-);
+const UserEditToolbar = () => {
+    console.log('🔧 UserEditToolbar rendered');
+
+    return (
+        <Toolbar>
+            <SaveButton />
+            <DeleteButton />
+        </Toolbar>
+    );
+};
 
 // Custom component to conditionally show blocking input
 const BlockingInput = () => {
@@ -59,14 +63,44 @@ const BlockingInput = () => {
 };
 
 export const AdminUserEdit = () => {
+    console.log('🎯🎯🎯 NEW CODE IS RUNNING! 🎯🎯🎯');
+
     const notify = useNotify();
     const refresh = useRefresh();
-    const redirect = useRedirect();
+    const queryClient = useQueryClient();
 
-    const onSuccess = (data: any) => {
+    // Transform function to remove protected fields from update data
+    // Keep 'id' for React-Admin, but remove userId, createdAt, updatedAt, lastLoginAt
+    const transform = (data: any) => {
+        console.log('🔄 Transform - Original data:', data);
+
+        // Remove protected fields and null timestamp fields
+        const { userId, createdAt, updatedAt, lastLoginAt, ...rest } = data;
+
+        // Remove any null or undefined values to prevent validation errors
+        const cleaned = Object.fromEntries(
+            Object.entries(rest).filter(([_, value]) => value !== null && value !== undefined)
+        );
+
+        console.log('🔄 Transform - Cleaned data:', cleaned);
+        return cleaned;
+    };
+
+    const onSuccess = async (data: any) => {
         console.log('✅ User update successful:', data);
         notify('User updated successfully', { type: 'success' });
-        refresh();
+
+        // Invalidate all queries to force refetch
+        await queryClient.invalidateQueries({ queryKey: ['users'] });
+        await queryClient.invalidateQueries({ queryKey: ['users', 'getOne'] });
+
+        console.log('🔄 Cache invalidated');
+
+        // Small delay to ensure refetch completes
+        setTimeout(() => {
+            refresh();
+            console.log('🔄 Refreshed');
+        }, 100);
     };
 
     const onError = (error: any) => {
@@ -91,23 +125,9 @@ export const AdminUserEdit = () => {
         notify(errorMessage, { type: 'error' });
     };
 
-    const onDeleteSuccess = () => {
-        notify('User deleted successfully', { type: 'success' });
-        redirect('list', 'admin-users');
-    };
-
-    const onDeleteError = (error: any) => {
-        notify(`Error deleting user: ${error.message}`, { type: 'error' });
-    };
-
     return (
         <Edit
-            mutationOptions={{
-                onSuccess,
-                onError,
-                onDeleteSuccess,
-                onDeleteError
-            }}
+            transform={transform}
             sx={{
                 '& .RaEdit-main': {
                     backgroundColor: 'white',
@@ -116,7 +136,10 @@ export const AdminUserEdit = () => {
                 },
             }}
         >
-            <SimpleForm toolbar={<UserEditToolbar />}>
+            <SimpleForm
+                toolbar={<UserEditToolbar />}
+                sanitizeEmptyValues
+            >
                 <Box sx={{ width: '100%', maxWidth: 800 }}>
                     <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#374151' }}>
                         User Information
@@ -133,7 +156,6 @@ export const AdminUserEdit = () => {
                                     <TextInput
                                         source="userName"
                                         label="User Name"
-                                        validate={required()}
                                         fullWidth
                                     />
                                 </Box>
@@ -141,7 +163,6 @@ export const AdminUserEdit = () => {
                                     <TextInput
                                         source="email"
                                         label="Email"
-                                        validate={required()}
                                         fullWidth
                                         type="email"
                                     />
@@ -165,13 +186,7 @@ export const AdminUserEdit = () => {
                                 </Box>
                             </Box>
 
-                            <TextInput
-                                source="userId"
-                                label="User ID (Clerk)"
-                                fullWidth
-                                disabled
-                                helperText="This is the Clerk user ID and cannot be changed"
-                            />
+                            {/* userId field removed - not needed in form */}
                         </CardContent>
                     </Card>
 
