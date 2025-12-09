@@ -23,9 +23,6 @@ import { AdminUserShow } from "./admin-users/show";
 import { RoleList } from "./roles/list";
 import { RoleEdit } from "./roles/edit";
 import { RoleCreate } from "./roles/create";
-import { LanguagePackList } from "./language-packs/list";
-import { LanguagePackEdit } from "./language-packs/edit-new";
-import { LanguagePackCreate } from "./language-packs/create";
 import { SettingsList } from "./settings/list";
 import { SettingsEdit } from "./settings/edit";
 import { CustomLayout } from "./layout/CustomLayout";
@@ -167,16 +164,6 @@ const AdminContent = () => {
             edit={RoleEdit}
             recordRepresentation="name"
             options={{ label: "🔐 Role & Permissions" }}
-          />
-
-          {/* Language Pack Management - UC36, BR141-BR144 */}
-          <Resource
-            name="language-packs"
-            list={LanguagePackList}
-            edit={LanguagePackEdit}
-            create={LanguagePackCreate}
-            recordRepresentation="name"
-            options={{ label: "🌐 Language Packs" }}
           />
 
           {/* System Settings */}

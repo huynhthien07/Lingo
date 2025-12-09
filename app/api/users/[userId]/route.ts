@@ -13,11 +13,22 @@ export const GET = async (
     }
 
     try {
-        const userId = (await params).userId;
+        const userIdParam = (await params).userId;
 
-        const user = await db.query.users.findFirst({
-            where: eq(users.userId, userId),
-        });
+        // Try to find user by id (number) or userId (Clerk ID string)
+        let user;
+
+        // Check if it's a number (database id)
+        if (!isNaN(Number(userIdParam))) {
+            user = await db.query.users.findFirst({
+                where: eq(users.id, parseInt(userIdParam)),
+            });
+        } else {
+            // It's a Clerk userId string
+            user = await db.query.users.findFirst({
+                where: eq(users.userId, userIdParam),
+            });
+        }
 
         if (!user) {
             return new NextResponse("User not found", { status: 404 });
@@ -39,13 +50,26 @@ export const PUT = async (
     }
 
     try {
-        const userId = (await params).userId;
+        const userIdParam = (await params).userId;
         const body = await req.json();
 
-        // Find user
-        const user = await db.query.users.findFirst({
-            where: eq(users.userId, userId),
-        });
+        // Find user by id (number) or userId (Clerk ID string)
+        let user;
+        let whereClause;
+
+        if (!isNaN(Number(userIdParam))) {
+            // It's a database id
+            whereClause = eq(users.id, parseInt(userIdParam));
+            user = await db.query.users.findFirst({
+                where: whereClause,
+            });
+        } else {
+            // It's a Clerk userId
+            whereClause = eq(users.userId, userIdParam);
+            user = await db.query.users.findFirst({
+                where: whereClause,
+            });
+        }
 
         if (!user) {
             return new NextResponse("User not found", { status: 404 });
@@ -55,7 +79,7 @@ export const PUT = async (
         const [updatedUser] = await db
             .update(users)
             .set(body)
-            .where(eq(users.userId, userId))
+            .where(whereClause)
             .returning();
 
         return NextResponse.json(updatedUser);

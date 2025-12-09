@@ -1,3 +1,4 @@
+
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { hasPermission } from "@/lib/services/permission.service";

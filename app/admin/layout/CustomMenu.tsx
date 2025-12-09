@@ -3,7 +3,6 @@ import {
     Dashboard,
     People,
     Security,
-    Language,
     Settings,
     AdminPanelSettings
 } from '@mui/icons-material';
@@ -16,7 +15,6 @@ import { Box, Typography, Divider } from '@mui/material';
  * - Dashboard: Overview of users, roles, system stats
  * - User Management: User list, detail, edit, change status (UC34)
  * - Role Permission Management: Manage roles and permissions (RBAC)
- * - Language Pack Management: Multi-language UI support (UC36, BR141-BR144)
  * - System Settings: General system configuration
  *
  * Reference: NIST RBAC Model for role-based access control
@@ -82,13 +80,6 @@ export const CustomMenu = () => {
             />
 
             <Divider sx={{ my: 1 }} />
-
-            {/* Language Pack Management (UC36) */}
-            <MenuItemLink
-                to="/language-packs"
-                primaryText="Language Packs"
-                leftIcon={<Language />}
-            />
 
             {/* System Settings */}
             <MenuItemLink
