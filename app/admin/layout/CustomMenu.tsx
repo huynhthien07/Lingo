@@ -67,7 +67,7 @@ export const CustomMenu = () => {
 
             {/* User Management Section */}
             <MenuItemLink
-                to="/users"
+                to="/admin-users"
                 primaryText="User Management"
                 leftIcon={<People />}
             />

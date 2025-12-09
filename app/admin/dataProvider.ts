@@ -4,6 +4,7 @@ const httpClient = fetchUtils.fetchJson;
 
 export const dataProvider: DataProvider = {
     getList: (resource, params) => {
+        console.log('🔍 DataProvider.getList called with resource:', resource);
         const { page, perPage } = params.pagination || { page: 1, perPage: 25 };
         const { field, order } = params.sort || { field: 'id', order: 'ASC' };
 
@@ -29,6 +30,7 @@ export const dataProvider: DataProvider = {
         });
 
         const url = `/api/${resource}?${searchParams.toString()}`;
+        console.log('🔍 DataProvider.getList URL:', url);
 
         return httpClient(url).then(({ headers, json }) => {
             // For pagination to work properly, we need to return the total count
@@ -37,17 +39,36 @@ export const dataProvider: DataProvider = {
                 (json.total !== undefined ? json.total :
                     (Array.isArray(json) ? json.length : 0));
 
+            let data = Array.isArray(json) ? json : json.data || [];
+
+            // For admin-users resource, ensure each record has id field
+            if (resource === 'admin-users') {
+                data = data.map((record: any) => ({
+                    ...record,
+                    id: record.id || record.userId, // Ensure id field exists
+                }));
+            }
+
             return {
-                data: Array.isArray(json) ? json : json.data || [],
+                data,
                 total: parseInt(total.toString(), 10),
             };
         });
     },
 
     getOne: (resource, params) =>
-        httpClient(`/api/${resource}/${params.id}`).then(({ json }) => ({
-            data: json,
-        })),
+        httpClient(`/api/${resource}/${params.id}`).then(({ json }) => {
+            // For admin-users resource, ensure id field exists for React-Admin
+            if (resource === 'admin-users' && json) {
+                return {
+                    data: {
+                        ...json,
+                        id: json.id || json.userId, // Ensure id field exists
+                    }
+                };
+            }
+            return { data: json };
+        }),
 
     getMany: (resource, params) => {
         const query = {
@@ -76,11 +97,19 @@ export const dataProvider: DataProvider = {
         }));
     },
 
-    update: (resource, params) =>
-        httpClient(`/api/${resource}/${params.id}`, {
+    update: (resource, params) => {
+        console.log('🔄 DataProvider update called:', { resource, id: params.id, data: params.data });
+        return httpClient(`/api/${resource}/${params.id}`, {
             method: 'PUT',
             body: JSON.stringify(params.data),
-        }).then(({ json }) => ({ data: json })),
+        }).then(({ json }) => {
+            console.log('✅ DataProvider update response:', json);
+            return { data: json };
+        }).catch((error) => {
+            console.error('❌ DataProvider update error:', error);
+            throw error;
+        });
+    },
 
     updateMany: (resource, params) => {
         return httpClient(`/api/${resource}/bulk-update`, {
