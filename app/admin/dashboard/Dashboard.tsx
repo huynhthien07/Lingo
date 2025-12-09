@@ -3,7 +3,6 @@ import {
     Box,
     Paper,
     Avatar,
-    Chip,
     Card,
     CardContent,
     CardHeader,
@@ -96,15 +95,9 @@ interface LanguageStats {
     vi: number;
 }
 
-interface SystemStats {
-    totalLanguagePacks: number;
-    supportedLanguages: number;
-}
-
 export const Dashboard = () => {
     const [userAnalytics, setUserAnalytics] = useState<UserAnalytics | null>(null);
     const [languageStats, setLanguageStats] = useState<LanguageStats | null>(null);
-    const [systemStats, setSystemStats] = useState<SystemStats | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -128,16 +121,8 @@ export const Dashboard = () => {
                 }
                 const languages = await langResponse.json();
 
-                // Fetch system statistics
-                const systemResponse = await fetch('/api/admin/analytics/system');
-                if (!systemResponse.ok) {
-                    throw new Error('Failed to fetch system statistics');
-                }
-                const system = await systemResponse.json();
-
                 setUserAnalytics(users);
                 setLanguageStats(languages);
-                setSystemStats(system);
             } catch (err) {
                 console.error('Error fetching dashboard data:', err);
                 setError('Failed to load dashboard data');
@@ -264,32 +249,6 @@ export const Dashboard = () => {
                                 <Typography variant="h6" sx={{ fontWeight: 600 }}>
                                     {languageStats?.vi || 0}
                                 </Typography>
-                            </Box>
-                        </Box>
-                    </CardContent>
-                </Card>
-
-                <Card sx={{ borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-                    <CardHeader title="System Configuration" />
-                    <CardContent>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <Typography variant="body2">Language Packs</Typography>
-                                <Chip
-                                    label={systemStats?.totalLanguagePacks || 0}
-                                    color="primary"
-                                    size="small"
-                                    sx={{ fontWeight: 600 }}
-                                />
-                            </Box>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <Typography variant="body2">Supported Languages</Typography>
-                                <Chip
-                                    label={systemStats?.supportedLanguages || 2}
-                                    color="secondary"
-                                    size="small"
-                                    sx={{ fontWeight: 600 }}
-                                />
                             </Box>
                         </Box>
                     </CardContent>
