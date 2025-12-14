@@ -6,6 +6,10 @@ import { getUserRole } from "@/lib/services/clerk.service";
 
 const isPublicRoute = createRouteMatcher([
   "/",
+  "/courses-public",
+  "/admission-test",
+  "/about",
+  "/contact",
   "/api/webhooks/stripe",
   "/api/webhooks/clerk",
   "/sign-in(.*)",
