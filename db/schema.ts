@@ -249,10 +249,21 @@ export const challenges = pgTable("challenges", {
     explanation: text("explanation"), // Explanation for correct answer
 });
 
-// 3.8 Challenge options table - Multiple choice options
-export const challengeOptions = pgTable("challenge_options", {
+// 3.8 Questions table - Questions for each exercise
+export const questions = pgTable("questions", {
     id: serial("id").primaryKey(),
     challengeId: integer("challenge_id").references(() => challenges.id, { onDelete: "cascade" }).notNull(),
+    text: text("text").notNull(),
+    order: integer("order").notNull(),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// 3.9 Challenge options table - Multiple choice options / Fill-in-blank answers
+export const challengeOptions = pgTable("challenge_options", {
+    id: serial("id").primaryKey(),
+    challengeId: integer("challenge_id").references(() => challenges.id, { onDelete: "cascade" }),
+    questionId: integer("question_id").references(() => questions.id, { onDelete: "cascade" }),
     text: text("text").notNull(),
     correct: boolean("correct").notNull(),
     imageSrc: text("image_src"),
@@ -260,7 +271,7 @@ export const challengeOptions = pgTable("challenge_options", {
     order: integer("order").notNull(),
 });
 
-// 3.9 Challenge metadata table - Additional data for special challenge types
+// 3.10 Challenge metadata table - Additional data for special challenge types
 export const challengeMetadata = pgTable("challenge_metadata", {
     id: serial("id").primaryKey(),
     challengeId: integer("challenge_id").unique().references(() => challenges.id, { onDelete: "cascade" }).notNull(),
@@ -676,6 +687,7 @@ export const challengesRelations = relations(challenges, ({ one, many }) => ({
         fields: [challenges.lessonId],
         references: [lessons.id],
     }),
+    questions: many(questions),
     challengeOptions: many(challengeOptions),
     challengeMetadata: one(challengeMetadata),
     challengeProgress: many(challengeProgress),
@@ -683,11 +695,24 @@ export const challengesRelations = relations(challenges, ({ one, many }) => ({
     speakingSubmissions: many(speakingSubmissions),
 }));
 
+// Questions relations
+export const questionsRelations = relations(questions, ({ one, many }) => ({
+    challenge: one(challenges, {
+        fields: [questions.challengeId],
+        references: [challenges.id],
+    }),
+    options: many(challengeOptions),
+}));
+
 // Challenge options relations
 export const challengeOptionsRelations = relations(challengeOptions, ({ one }) => ({
     challenge: one(challenges, {
         fields: [challengeOptions.challengeId],
         references: [challenges.id],
+    }),
+    question: one(questions, {
+        fields: [challengeOptions.questionId],
+        references: [questions.id],
     }),
 }));
 

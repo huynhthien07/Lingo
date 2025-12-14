@@ -16,6 +16,9 @@ const isPublicRoute = createRouteMatcher([
 // Admin-only route matcher (React-Admin panel)
 const isAdminRoute = createRouteMatcher(["/admin(.*)"]);
 
+// Teacher-only route matcher
+const isTeacherRoute = createRouteMatcher(["/teacher(.*)"]);
+
 export default clerkMiddleware(async (auth, req) => {
   // Allow public routes
   if (isPublicRoute(req)) {
@@ -41,12 +44,23 @@ export default clerkMiddleware(async (auth, req) => {
         return NextResponse.redirect(url);
       }
 
+      // Get user role for route protection
+      const role = await getUserRole(userId);
+
       // Admin panel protection - only ADMIN can access /admin
       if (isAdminRoute(req)) {
-        const role = await getUserRole(userId);
         if (role !== "ADMIN") {
           console.log(`🚫 Non-admin user ${userId} (${role}) tried to access admin panel`);
-          const url = new URL("/dashboard", req.url);
+          const url = new URL("/", req.url);
+          return NextResponse.redirect(url);
+        }
+      }
+
+      // Teacher area protection - TEACHER or ADMIN can access /teacher
+      if (isTeacherRoute(req)) {
+        if (role !== "TEACHER" && role !== "ADMIN") {
+          console.log(`🚫 Non-teacher user ${userId} (${role}) tried to access teacher area`);
+          const url = new URL("/", req.url);
           return NextResponse.redirect(url);
         }
       }
