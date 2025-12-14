@@ -463,6 +463,22 @@ export const updateAdminUser = async (id: number, data: any) => {
   console.log('🔄 updateAdminUser - User ID:', id);
   console.log('🔄 updateAdminUser - Update data:', updateData);
 
+  // If role is being updated, update Clerk metadata to prevent webhook from overwriting
+  if (updateData.role && updateData.role !== user.role) {
+    console.log(`🔄 Updating Clerk metadata - Role: ${user.role} → ${updateData.role}`);
+    try {
+      await updateClerkUser(user.userId, {
+        publicMetadata: {
+          role: updateData.role,
+        },
+      });
+      console.log('✅ Clerk metadata updated');
+    } catch (error) {
+      console.error('❌ Error updating Clerk metadata:', error);
+      // Continue with database update even if Clerk update fails
+    }
+  }
+
   // Update in database
   const [updated] = await db
     .update(users)
