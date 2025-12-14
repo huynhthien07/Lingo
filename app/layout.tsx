@@ -3,6 +3,7 @@ import { ExitTestModal } from '@/components/modals/exit-test-modal';
 import { HeartsModal } from '@/components/modals/hearts-modal';
 import { PracticeModal } from '@/components/modals/practice-modal';
 import { Toaster } from '@/components/ui/sonner';
+import { Toaster as HotToaster } from 'react-hot-toast';
 import { ClerkProvider } from '@clerk/nextjs';
 import type { Metadata } from "next";
 import { Nunito } from "next/font/google";
@@ -29,6 +30,7 @@ export default function RootLayout({
           suppressHydrationWarning
         >
           <Toaster />
+          <HotToaster position="top-center" />
           <ExitModal />
           <ExitTestModal />
           <HeartsModal />

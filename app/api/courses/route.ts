@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 import { getIsAdmin } from "@/lib/admin";
 import { getAllCourses, createCourse } from "@/lib/controllers/course.controller";
 
@@ -34,10 +35,19 @@ export const POST = async (req: Request) => {
     }
 
     try {
+        const { userId } = await auth();
+
+        if (!userId) {
+            return new NextResponse("Unauthorized", { status: 401 });
+        }
+
         const body = await req.json();
         const { id, ...courseData } = body;
 
-        const newCourse = await createCourse(courseData);
+        const newCourse = await createCourse({
+            ...courseData,
+            createdBy: userId,
+        });
 
         return NextResponse.json(newCourse);
     } catch (error) {

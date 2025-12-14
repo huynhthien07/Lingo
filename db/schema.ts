@@ -89,8 +89,10 @@ export const submissionStatusEnum = pgEnum("submission_status", [
 export const testTypeEnum = pgEnum("test_type", [
     "PRACTICE",      // Practice exercises
     "MOCK_TEST",     // Simulated exam
-    "FULL_TEST",     // Complete IELTS test
-    "ADMISSION_TEST" // Placement test
+    "FULL_TEST",     // Complete IELTS test (excluding Speaking & Writing)
+    "ADMISSION_TEST", // Placement test
+    "SPEAKING_TEST", // Speaking only test (needs teacher grading)
+    "WRITING_TEST"   // Writing only test (needs teacher grading)
 ]);
 
 // Test attempt tracking
@@ -206,6 +208,7 @@ export const courses = pgTable("courses", {
     price: integer("price").notNull().default(0), // Price in cents (e.g., 2000 = $20.00)
     currency: text("currency").notNull().default("USD"),
     isFree: boolean("is_free").notNull().default(false),
+    createdBy: text("created_by").notNull(), // Clerk userId of the teacher who created this course
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -387,6 +390,8 @@ export const testSections = pgTable("test_sections", {
     skillType: skillTypeEnum("skill_type").notNull(),
     order: integer("order").notNull(),
     duration: integer("duration"), // Section duration in minutes
+    passage: text("passage"), // Shared passage for reading sections (all questions use this)
+    audioSrc: text("audio_src"), // Shared audio for listening sections (all questions use this)
 });
 
 // 3.17 Test questions table - Questions within test sections
@@ -394,8 +399,6 @@ export const testQuestions = pgTable("test_questions", {
     id: serial("id").primaryKey(),
     sectionId: integer("section_id").references(() => testSections.id, { onDelete: "cascade" }).notNull(),
     questionText: text("question_text").notNull(),
-    passage: text("passage"), // For reading sections
-    audioSrc: text("audio_src"), // For listening sections
     order: integer("order").notNull(),
     points: integer("points").notNull().default(1),
 });
@@ -1014,5 +1017,79 @@ export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
     session: one(chatSessions, {
         fields: [chatMessages.sessionId],
         references: [chatSessions.id],
+    }),
+}));
+
+// ============================================================================
+// 11. FLASHCARD SYSTEM
+// ============================================================================
+
+// 11.1 Flashcard Categories - Organize flashcards by topic/theme
+export const flashcardCategories = pgTable("flashcard_categories", {
+    id: serial("id").primaryKey(),
+    name: text("name").notNull(),
+    description: text("description"),
+    createdBy: text("created_by").notNull(), // Teacher/Admin who created this category
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// 11.2 Flashcards - Vocabulary flashcards
+export const flashcards = pgTable("flashcards", {
+    id: serial("id").primaryKey(),
+    categoryId: integer("category_id").references(() => flashcardCategories.id, { onDelete: "cascade" }).notNull(),
+    word: text("word").notNull(), // The vocabulary word
+    definition: text("definition").notNull(), // Definition of the word
+    pronunciation: text("pronunciation"), // Phonetic pronunciation (e.g., /həˈloʊ/)
+    example: text("example"), // Example sentence
+    synonyms: text("synonyms"), // Comma-separated synonyms
+    antonyms: text("antonyms"), // Comma-separated antonyms
+    partOfSpeech: text("part_of_speech"), // noun, verb, adjective, etc.
+    audioUrl: text("audio_url"), // URL to pronunciation audio (from API or uploaded)
+    imageUrl: text("image_url"), // Optional image to help remember the word
+    difficulty: text("difficulty"), // EASY, MEDIUM, HARD
+    source: text("source").notNull().default("MANUAL"), // MANUAL or API (from Free Dictionary API)
+    createdBy: text("created_by").notNull(), // Teacher/Admin who created this flashcard
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// 11.3 Flashcard Progress - Track student learning progress
+export const flashcardProgress = pgTable("flashcard_progress", {
+    id: serial("id").primaryKey(),
+    userId: text("user_id").notNull(), // Student's Clerk userId
+    flashcardId: integer("flashcard_id").references(() => flashcards.id, { onDelete: "cascade" }).notNull(),
+    status: text("status").notNull().default("NEW"), // NEW, LEARNING, MASTERED
+    correctCount: integer("correct_count").notNull().default(0), // Number of times answered correctly
+    incorrectCount: integer("incorrect_count").notNull().default(0), // Number of times answered incorrectly
+    lastReviewedAt: timestamp("last_reviewed_at"), // Last time this flashcard was reviewed
+    nextReviewAt: timestamp("next_review_at"), // When to review next (spaced repetition)
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Flashcard Categories Relations
+export const flashcardCategoriesRelations = relations(flashcardCategories, ({ many }) => ({
+    flashcards: many(flashcards),
+}));
+
+// Flashcards Relations
+export const flashcardsRelations = relations(flashcards, ({ one, many }) => ({
+    category: one(flashcardCategories, {
+        fields: [flashcards.categoryId],
+        references: [flashcardCategories.id],
+    }),
+    progress: many(flashcardProgress),
+}));
+
+// Flashcard Progress Relations
+export const flashcardProgressRelations = relations(flashcardProgress, ({ one }) => ({
+    flashcard: one(flashcards, {
+        fields: [flashcardProgress.flashcardId],
+        references: [flashcards.id],
+    }),
+    user: one(users, {
+        fields: [flashcardProgress.userId],
+        references: [users.userId],
     }),
 }));
