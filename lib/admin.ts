@@ -1,4 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
+import db from "@/db/drizzle";
+import { users } from "@/db/schema";
+import { eq } from "drizzle-orm";
 
 const adminIds = [
     "user_2tkC1z5zJJ4Sw2b85JXWEqmNeuY",
@@ -55,5 +58,29 @@ export const getIsAdmin = async () => {
     } catch (error) {
         console.error("Error in getIsAdmin:", error);
         return false;
+    }
+}
+
+/**
+ * Get user role from database
+ * @param userId - Clerk user ID
+ * @returns User role (STUDENT, TEACHER, ADMIN) or null if not found
+ */
+export const getUserRole = async (userId: string): Promise<string | null> => {
+    try {
+        const user = await db.query.users.findFirst({
+            where: eq(users.userId, userId),
+        });
+
+        if (!user) {
+            console.log(`❌ User not found: ${userId}`);
+            return null;
+        }
+
+        console.log(`✅ User role for ${userId}: ${user.role}`);
+        return user.role;
+    } catch (error) {
+        console.error("Error in getUserRole:", error);
+        return null;
     }
 }

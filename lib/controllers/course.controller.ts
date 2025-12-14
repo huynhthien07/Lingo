@@ -81,15 +81,16 @@ export const getCourseById = async (courseId: number) => {
 export const createCourse = async (courseData: {
     title: string;
     imageSrc: string;
+    createdBy: string;
     level?: string;
     description?: string;
     price?: number;
 }) => {
-    const { title, imageSrc, level, description, price } = courseData;
+    const { title, imageSrc, createdBy, level, description, price } = courseData;
 
     // Validate required fields
-    if (!title || !imageSrc) {
-        throw new Error("Title and imageSrc are required");
+    if (!title || !imageSrc || !createdBy) {
+        throw new Error("Title, imageSrc, and createdBy are required");
     }
 
     // Check for duplicate title
@@ -105,6 +106,7 @@ export const createCourse = async (courseData: {
     const newCourse = await db.insert(courses).values({
         title,
         imageSrc,
+        createdBy,
         level: level || null,
         description: description || null,
         price: price || null,

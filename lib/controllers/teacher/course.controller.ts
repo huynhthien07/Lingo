@@ -37,25 +37,8 @@ export const getTeacherCourses = async (
   // Build where conditions
   const conditions: any[] = [];
 
-  // Filter by teacher assignment
-  const teacherCourseIds = await db
-    .select({ courseId: teacherAssignments.courseId })
-    .from(teacherAssignments)
-    .where(eq(teacherAssignments.teacherId, teacherId));
-
-  const courseIds = teacherCourseIds.map((tc) => tc.courseId);
-
-  if (courseIds.length === 0) {
-    return {
-      data: [],
-      total: 0,
-      page,
-      limit,
-      totalPages: 0,
-    };
-  }
-
-  conditions.push(sql`${courses.id} IN ${courseIds}`);
+  // Filter by course creator (teacher who created the course)
+  conditions.push(eq(courses.createdBy, teacherId));
 
   // Search filter
   if (search) {
@@ -97,6 +80,7 @@ export const getTeacherCourses = async (
       price: courses.price,
       currency: courses.currency,
       isFree: courses.isFree,
+      createdBy: courses.createdBy,
       createdAt: courses.createdAt,
       updatedAt: courses.updatedAt,
     })
@@ -191,10 +175,11 @@ export const createTeacherCourse = async (teacherId: string, data: any) => {
       price: data.price || 0,
       currency: data.currency || "USD",
       isFree: data.isFree || false,
+      createdBy: teacherId, // Set the creator
     })
     .returning();
 
-  // Assign teacher to course
+  // Assign teacher to course (for backward compatibility with teacherAssignments)
   await db.insert(teacherAssignments).values({
     teacherId,
     courseId: course.id,
