@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import db from "@/db/drizzle";
 import { courseEnrollments, challenges } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
-import { PracticeClient } from "@/components/student/practice-client";
+import { PracticeQuiz } from "@/components/student/practice-quiz";
 
 interface PracticePageProps {
   params: Promise<{ courseId: string; lessonId: string; challengeId: string }>;
@@ -48,8 +48,11 @@ export default async function PracticePage({ params }: PracticePageProps) {
         },
       },
       questions: {
+        orderBy: (questions, { asc }) => [asc(questions.order)],
         with: {
-          options: true,
+          options: {
+            orderBy: (options, { asc }) => [asc(options.order)],
+          },
         },
       },
     },
@@ -65,7 +68,7 @@ export default async function PracticePage({ params }: PracticePageProps) {
   }
 
   return (
-    <PracticeClient
+    <PracticeQuiz
       challenge={challenge}
       courseId={courseIdNum}
       lessonId={lessonIdNum}

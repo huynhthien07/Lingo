@@ -231,6 +231,7 @@ export const lessons = pgTable("lessons", {
     order: integer("order").notNull(),
     skillType: skillTypeEnum("skill_type").notNull(),
     estimatedDuration: integer("estimated_duration"), // in minutes
+    videoUrl: text("video_url"), // URL to lesson video
 });
 
 // ============================================================================
