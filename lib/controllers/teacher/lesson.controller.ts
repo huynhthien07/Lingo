@@ -4,8 +4,18 @@
  */
 
 import db from "@/db/drizzle";
-import { lessons, units, courses, teacherAssignments, challenges } from "@/db/schema";
+import { lessons, units, courses, teacherAssignments, challenges, users } from "@/db/schema";
 import { eq, and, desc, asc, ilike, sql, count } from "drizzle-orm";
+
+/**
+ * Check if user is admin
+ */
+async function isUserAdmin(userId: string): Promise<boolean> {
+  const user = await db.query.users.findFirst({
+    where: eq(users.userId, userId),
+  });
+  return user?.role === "ADMIN";
+}
 
 /**
  * Get paginated list of lessons for a teacher (all courses or specific unit)
@@ -176,16 +186,20 @@ export const getTeacherLessonById = async (lessonId: number, teacherId: string) 
     throw new Error("Lesson not found");
   }
 
-  // Check if teacher is assigned to this course
-  const assignment = await db.query.teacherAssignments.findFirst({
-    where: and(
-      eq(teacherAssignments.courseId, lesson.unit.courseId),
-      eq(teacherAssignments.teacherId, teacherId)
-    ),
-  });
+  // Check if user is admin or teacher assigned to this course
+  const isAdmin = await isUserAdmin(teacherId);
 
-  if (!assignment) {
-    throw new Error("Lesson not found or you don't have access");
+  if (!isAdmin) {
+    const assignment = await db.query.teacherAssignments.findFirst({
+      where: and(
+        eq(teacherAssignments.courseId, lesson.unit.courseId),
+        eq(teacherAssignments.teacherId, teacherId)
+      ),
+    });
+
+    if (!assignment) {
+      throw new Error("Lesson not found or you don't have access");
+    }
   }
 
   // Get exercise count
@@ -216,16 +230,20 @@ export const createTeacherLesson = async (
     throw new Error("Unit not found");
   }
 
-  // Check if teacher is assigned to this course
-  const assignment = await db.query.teacherAssignments.findFirst({
-    where: and(
-      eq(teacherAssignments.courseId, unit.courseId),
-      eq(teacherAssignments.teacherId, teacherId)
-    ),
-  });
+  // Check if user is admin or teacher assigned to this course
+  const isAdmin = await isUserAdmin(teacherId);
 
-  if (!assignment) {
-    throw new Error("Unit not found or you don't have access");
+  if (!isAdmin) {
+    const assignment = await db.query.teacherAssignments.findFirst({
+      where: and(
+        eq(teacherAssignments.courseId, unit.courseId),
+        eq(teacherAssignments.teacherId, teacherId)
+      ),
+    });
+
+    if (!assignment) {
+      throw new Error("Unit not found or you don't have access");
+    }
   }
 
   // Get next order number
@@ -273,26 +291,41 @@ export const updateTeacherLesson = async (
     throw new Error("Lesson not found");
   }
 
-  // Check if teacher is assigned to this course
-  const assignment = await db.query.teacherAssignments.findFirst({
-    where: and(
-      eq(teacherAssignments.courseId, lesson.unit.courseId),
-      eq(teacherAssignments.teacherId, teacherId)
-    ),
-  });
+  // Check if user is admin or teacher assigned to this course
+  const isAdmin = await isUserAdmin(teacherId);
 
-  if (!assignment) {
-    throw new Error("Lesson not found or you don't have access");
+  if (!isAdmin) {
+    const assignment = await db.query.teacherAssignments.findFirst({
+      where: and(
+        eq(teacherAssignments.courseId, lesson.unit.courseId),
+        eq(teacherAssignments.teacherId, teacherId)
+      ),
+    });
+
+    if (!assignment) {
+      throw new Error("Lesson not found or you don't have access");
+    }
   }
 
   // Update lesson
-  const [updated] = await db
+  await db
     .update(lessons)
     .set(data)
-    .where(eq(lessons.id, lessonId))
-    .returning();
+    .where(eq(lessons.id, lessonId));
 
-  return updated;
+  // Fetch and return the updated lesson with full relations
+  const updatedLesson = await db.query.lessons.findFirst({
+    where: eq(lessons.id, lessonId),
+    with: {
+      unit: {
+        with: {
+          course: true,
+        },
+      },
+    },
+  });
+
+  return updatedLesson;
 };
 
 /**
@@ -310,16 +343,20 @@ export const deleteTeacherLesson = async (lessonId: number, teacherId: string) =
     throw new Error("Lesson not found");
   }
 
-  // Check if teacher is assigned to this course
-  const assignment = await db.query.teacherAssignments.findFirst({
-    where: and(
-      eq(teacherAssignments.courseId, lesson.unit.courseId),
-      eq(teacherAssignments.teacherId, teacherId)
-    ),
-  });
+  // Check if user is admin or teacher assigned to this course
+  const isAdmin = await isUserAdmin(teacherId);
 
-  if (!assignment) {
-    throw new Error("Lesson not found or you don't have access");
+  if (!isAdmin) {
+    const assignment = await db.query.teacherAssignments.findFirst({
+      where: and(
+        eq(teacherAssignments.courseId, lesson.unit.courseId),
+        eq(teacherAssignments.teacherId, teacherId)
+      ),
+    });
+
+    if (!assignment) {
+      throw new Error("Lesson not found or you don't have access");
+    }
   }
 
   // Delete lesson (cascade will delete challenges)
