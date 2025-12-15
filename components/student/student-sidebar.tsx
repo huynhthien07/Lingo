@@ -72,10 +72,13 @@ export function StudentSidebar() {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
-    <aside className={cn(
-      "bg-white border-r border-gray-200 flex flex-col transition-all duration-300",
-      collapsed ? "w-20" : "w-64"
-    )}>
+    <aside
+      data-student-sidebar
+      className={cn(
+        "bg-white border-r border-gray-200 flex flex-col transition-all duration-300",
+        collapsed ? "w-20" : "w-64"
+      )}
+    >
       {/* Logo */}
       <div className="p-6 border-b border-gray-200">
         <Link href="/student" className="flex items-center gap-2">

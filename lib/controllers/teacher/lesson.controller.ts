@@ -307,10 +307,21 @@ export const updateTeacherLesson = async (
     }
   }
 
+  // Prepare update data - handle empty strings
+  const updateData: any = { ...data };
+
+  // Convert empty strings to null for optional fields
+  if (updateData.videoUrl === "") {
+    updateData.videoUrl = null;
+  }
+  if (updateData.description === "") {
+    updateData.description = null;
+  }
+
   // Update lesson
   await db
     .update(lessons)
-    .set(data)
+    .set(updateData)
     .where(eq(lessons.id, lessonId));
 
   // Fetch and return the updated lesson with full relations
