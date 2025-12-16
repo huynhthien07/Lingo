@@ -6,6 +6,7 @@ import { ArrowLeft, CheckCircle2, Circle, Play, BookOpen, Clock, Volume2 } from 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { ForceUpdateProgressButton } from "./force-update-progress-button";
 
 interface LessonViewClientProps {
   lesson: any;
@@ -74,6 +75,12 @@ export function LessonViewClient({
                 <p className="text-xs text-gray-500 mt-1">
                   {isCompleted ? "✓ Đã hoàn thành" : `${Math.round(progressPercentage)}% hoàn thành`}
                 </p>
+                {/* Force Update Button (for debugging) */}
+                {completedChallenges === totalChallenges && !isCompleted && (
+                  <div className="mt-2">
+                    <ForceUpdateProgressButton lessonId={lesson.id} />
+                  </div>
+                )}
               </div>
 
               {/* Exercise List */}

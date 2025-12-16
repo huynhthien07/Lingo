@@ -57,7 +57,7 @@ const menuItems = [
   },
   {
     title: "Learning History",
-    href: "/student/history",
+    href: "/student/learning-history",
     icon: History,
   },
   {
