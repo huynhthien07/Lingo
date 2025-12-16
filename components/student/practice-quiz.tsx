@@ -12,36 +12,52 @@ import {
   ChevronDown,
   ChevronUp,
   Trophy,
-  Star
+  Star,
+  ChevronRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import confetti from "canvas-confetti";
+import { playCorrectSound, playIncorrectSound, playFinishSound } from "@/lib/utils/sound";
 
 interface PracticeQuizProps {
   challenge: any;
+  allChallenges: any[];
+  allProgress: any[];
   courseId: number;
   lessonId: number;
 }
 
-export function PracticeQuiz({ challenge, courseId, lessonId }: PracticeQuizProps) {
+export function PracticeQuiz({ challenge, allChallenges, allProgress, courseId, lessonId }: PracticeQuizProps) {
   const router = useRouter();
+  const [currentChallengeIndex, setCurrentChallengeIndex] = useState(
+    allChallenges.findIndex(c => c.id === challenge.id)
+  );
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [submitted, setSubmitted] = useState<Record<number, boolean>>({});
   const [showAnswer, setShowAnswer] = useState<Record<number, boolean>>({});
-  const [allCompleted, setAllCompleted] = useState(false);
+  const [challengeCompleted, setChallengeCompleted] = useState(false);
+  const [lessonCompleted, setLessonCompleted] = useState(false);
   const [score, setScore] = useState(0);
+  const [pointsEarned, setPointsEarned] = useState(0);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
 
-  const questions = challenge.questions || [];
+  const currentChallenge = allChallenges[currentChallengeIndex];
+  const questions = currentChallenge.questions || [];
   const currentQuestion = questions[currentQuestionIndex];
   const totalQuestions = questions.length;
 
-  // Calculate progress based on submitted questions
+  // Calculate progress based on submitted questions in current challenge
   const submittedCount = Object.keys(submitted).filter(key => submitted[parseInt(key)]).length;
   const progressPercentage = totalQuestions > 0 ? (submittedCount / totalQuestions) * 100 : 0;
+
+  // Calculate overall lesson progress
+  const completedChallengesCount = allChallenges.filter(c =>
+    allProgress.some(p => p.challengeId === c.id && p.completed)
+  ).length;
+  const totalChallenges = allChallenges.length;
 
   // Hide student sidebar on mount
   useEffect(() => {
@@ -91,8 +107,10 @@ export function PracticeQuiz({ challenge, courseId, lessonId }: PracticeQuizProp
     const correct = isCurrentCorrect();
     if (correct) {
       toast.success("Chính xác! 🎉");
+      playCorrectSound();
     } else {
       toast.error("Chưa đúng. Hãy xem đáp án!");
+      playIncorrectSound();
     }
   };
 
@@ -114,16 +132,16 @@ export function PracticeQuiz({ challenge, courseId, lessonId }: PracticeQuizProp
       setSubmitted({});
       setShowAnswer({});
       setCurrentQuestionIndex(0);
-      setAllCompleted(false);
+      setChallengeCompleted(false);
       setScore(0);
       toast.info("Đã reset bài tập!");
     }
   };
 
-  // Check if all questions completed
+  // Check if current challenge completed
   useEffect(() => {
     const allSubmitted = questions.every((q: any) => submitted[q.id]);
-    if (allSubmitted && questions.length > 0 && !allCompleted) {
+    if (allSubmitted && questions.length > 0 && !challengeCompleted) {
       // Calculate score
       let correctCount = 0;
       questions.forEach((q: any) => {
@@ -133,29 +151,56 @@ export function PracticeQuiz({ challenge, courseId, lessonId }: PracticeQuizProp
           correctCount++;
         }
       });
+      const challengeScore = Math.round((correctCount / questions.length) * 10); // 10 points per challenge
       setScore(correctCount);
-      setAllCompleted(true);
+      setChallengeCompleted(true);
 
-      // Celebration
-      confetti({
-        particleCount: 150,
-        spread: 80,
-        origin: { y: 0.6 },
-        colors: ['#10B981', '#3B82F6', '#F59E0B', '#EF4444']
-      });
-
-      // Play success sound
-      const audio = new Audio("/sound/success.mp3");
-      audio.play().catch((err) => {
-        console.log("Audio play failed:", err);
-      });
+      // Submit progress to API
+      submitProgress(challengeScore);
     }
-  }, [submitted, questions, answers, allCompleted]);
+  }, [submitted, questions, answers, challengeCompleted]);
+
+  const submitProgress = async (challengeScore: number) => {
+    try {
+      const response = await fetch("/api/student/progress", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          challengeId: currentChallenge.id,
+          answers,
+          score: challengeScore,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setPointsEarned(data.pointsEarned);
+
+        if (data.lessonCompleted) {
+          setLessonCompleted(true);
+
+          // Celebration for lesson completion
+          confetti({
+            particleCount: 150,
+            spread: 80,
+            origin: { y: 0.6 },
+            colors: ['#10B981', '#3B82F6', '#F59E0B', '#EF4444']
+          });
+
+          playFinishSound();
+        } else {
+          playCorrectSound();
+        }
+      }
+    } catch (error) {
+      console.error("Error submitting progress:", error);
+    }
+  };
 
   // Handle exit with confirmation
   const handleExit = () => {
     const hasProgress = Object.keys(answers).length > 0;
-    if (hasProgress && !allCompleted) {
+    if (hasProgress && !challengeCompleted) {
       setShowExitConfirm(true);
     } else {
       router.push(`/student/courses/${courseId}/lessons/${lessonId}`);
@@ -205,32 +250,101 @@ export function PracticeQuiz({ challenge, courseId, lessonId }: PracticeQuizProp
         </div>
       )}
 
-      {/* Completion Celebration */}
-      {allCompleted && (
+      {/* Challenge Completion Modal */}
+      {challengeCompleted && !lessonCompleted && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-8 max-w-md w-full text-center">
             <div className="mb-6">
-              <Trophy className="h-20 w-20 text-yellow-500 mx-auto mb-4" />
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">Chúc mừng!</h2>
-              <p className="text-gray-600">Bạn đã hoàn thành bài tập</p>
-            </div>
-
-            <div className="bg-blue-50 rounded-lg p-6 mb-6">
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <Star className="h-6 w-6 text-yellow-500 fill-yellow-500" />
-                <span className="text-4xl font-bold text-blue-600">{score}/{totalQuestions}</span>
-              </div>
-              <p className="text-sm text-gray-600">
-                Điểm số: {Math.round((score / totalQuestions) * 100)}%
+              <CheckCircle2 className="w-20 h-20 text-green-500 mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                Hoàn thành bài tập! 🎉
+              </h2>
+              <p className="text-gray-600 mb-4">
+                Bạn đã hoàn thành bài tập này
               </p>
+              <div className="bg-blue-50 rounded-lg p-4 mb-4">
+                <p className="text-sm text-gray-600 mb-1">Điểm số</p>
+                <p className="text-4xl font-bold text-blue-600">
+                  {score}/{totalQuestions}
+                </p>
+                <p className="text-sm text-green-600 mt-2 font-semibold">
+                  +{pointsEarned} điểm
+                </p>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-3 mb-4">
+                <p className="text-sm text-gray-600">Tiến độ bài học</p>
+                <p className="text-lg font-semibold text-gray-900">
+                  {completedChallengesCount + 1}/{totalChallenges} bài tập
+                </p>
+              </div>
             </div>
 
             <div className="flex flex-col gap-3">
-              <Button onClick={() => router.push(`/student/courses/${courseId}/lessons/${lessonId}`)} className="w-full">
-                Quay lại bài học
-              </Button>
+              {currentChallengeIndex < allChallenges.length - 1 ? (
+                <Button
+                  onClick={() => {
+                    const nextChallenge = allChallenges[currentChallengeIndex + 1];
+                    router.push(`/student/courses/${courseId}/lessons/${lessonId}/practice/${nextChallenge.id}`);
+                  }}
+                  className="w-full"
+                >
+                  <ChevronRight className="h-4 w-4 mr-2" />
+                  Bài tập tiếp theo
+                </Button>
+              ) : (
+                <Button onClick={() => router.push(`/student/courses/${courseId}/lessons/${lessonId}`)} className="w-full">
+                  Quay lại bài học
+                </Button>
+              )}
               <Button variant="outline" onClick={handleReset} className="w-full">
-                Làm lại bài tập
+                Làm lại bài tập này
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Lesson Completion Modal */}
+      {lessonCompleted && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-8 max-w-md w-full text-center">
+            <div className="mb-6">
+              <Trophy className="w-24 h-24 text-yellow-500 mx-auto mb-4 animate-bounce" />
+              <h2 className="text-3xl font-bold text-gray-900 mb-2">
+                Xuất sắc! 🎊
+              </h2>
+              <p className="text-gray-600 mb-4">
+                Bạn đã hoàn thành toàn bộ bài học!
+              </p>
+              <div className="bg-gradient-to-r from-blue-50 to-green-50 rounded-lg p-6 mb-4">
+                <p className="text-sm text-gray-600 mb-2">Tổng điểm nhận được</p>
+                <p className="text-5xl font-bold text-green-600 mb-2">
+                  +{pointsEarned}
+                </p>
+                <div className="flex items-center justify-center gap-1 mt-3">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star
+                      key={i}
+                      className="w-8 h-8 fill-yellow-400 text-yellow-400 animate-pulse"
+                      style={{ animationDelay: `${i * 100}ms` }}
+                    />
+                  ))}
+                </div>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-3">
+                <p className="text-sm text-gray-600">Hoàn thành</p>
+                <p className="text-lg font-semibold text-gray-900">
+                  {totalChallenges}/{totalChallenges} bài tập
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <Button onClick={() => router.push(`/student/courses/${courseId}`)} className="w-full">
+                Quay lại khóa học
+              </Button>
+              <Button variant="outline" onClick={() => router.push(`/student/courses/${courseId}/lessons/${lessonId}`)} className="w-full">
+                Xem lại bài học
               </Button>
             </div>
           </div>
@@ -262,36 +376,97 @@ export function PracticeQuiz({ challenge, courseId, lessonId }: PracticeQuizProp
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-sm font-medium text-gray-700">
-                    Câu {currentQuestionIndex + 1}/{totalQuestions}
+                    Bài tập {currentChallengeIndex + 1}/{totalChallenges} - Câu {currentQuestionIndex + 1}/{totalQuestions}
                   </span>
                   <span className="text-sm font-semibold text-blue-600">
-                    {submittedCount}/{totalQuestions} đã hoàn thành
+                    {completedChallengesCount}/{totalChallenges} bài tập hoàn thành
                   </span>
                 </div>
-                <Progress value={progressPercentage} className="h-2.5" />
+                <Progress value={(completedChallengesCount / totalChallenges) * 100} className="h-2.5" />
               </div>
             </div>
           </div>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="max-w-[1400px] mx-auto px-4 py-4">
-            {/* Passage/Audio if available */}
-            {challenge.passage && (
-              <div className="bg-white rounded-lg border p-4 mb-3">
-                <h3 className="font-semibold text-base mb-2.5">Đoạn văn</h3>
+        {/* Content with Sidebar */}
+        <div className="flex-1 overflow-y-auto flex">
+          {/* Left Sidebar - All Challenges */}
+          <div className="w-64 bg-white border-r overflow-y-auto">
+            <div className="p-4">
+              <h3 className="font-semibold text-sm text-gray-700 mb-3">Danh sách bài tập</h3>
+              <div className="space-y-2">
+                {allChallenges.map((ch: any, idx: number) => {
+                  const isCompleted = allProgress.some(p => p.challengeId === ch.id && p.completed);
+                  const isCurrent = idx === currentChallengeIndex;
+
+                  return (
+                    <Link
+                      key={ch.id}
+                      href={`/student/courses/${courseId}/lessons/${lessonId}/practice/${ch.id}`}
+                      className={`block p-3 rounded-lg border transition-all ${
+                        isCurrent
+                          ? 'bg-blue-50 border-blue-300 ring-2 ring-blue-500'
+                          : isCompleted
+                          ? 'bg-green-50 border-green-200 hover:bg-green-100'
+                          : 'bg-white border-gray-200 hover:bg-gray-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="flex-shrink-0">
+                          {isCompleted ? (
+                            <CheckCircle2 className="h-5 w-5 text-green-600" />
+                          ) : isCurrent ? (
+                            <div className="h-5 w-5 rounded-full bg-blue-500 flex items-center justify-center">
+                              <div className="h-2 w-2 bg-white rounded-full" />
+                            </div>
+                          ) : (
+                            <div className="h-5 w-5 rounded-full border-2 border-gray-300" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            Bài tập {idx + 1}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {ch.questions?.length || 0} câu hỏi
+                          </p>
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Main Content */}
+          <div className="flex-1 overflow-y-auto">
+          <div className="max-w-full mx-auto px-4 py-4">
+            {/* Exercise Instructions */}
+            {currentChallenge.question && (
+              <div className="bg-blue-50 rounded-lg border border-blue-200 p-4 mb-3">
+                <h3 className="font-semibold text-base mb-2 text-blue-900">📋 Đề bài</h3>
                 <p className="text-gray-800 whitespace-pre-wrap leading-relaxed text-base">
-                  {challenge.passage}
+                  {currentChallenge.question}
                 </p>
               </div>
             )}
 
-            {challenge.audioSrc && (
+            {/* Passage/Audio if available */}
+            {currentChallenge.passage && (
               <div className="bg-white rounded-lg border p-4 mb-3">
-                <h3 className="font-semibold text-base mb-2.5">Audio</h3>
+                <h3 className="font-semibold text-base mb-2.5">📖 Đoạn văn</h3>
+                <p className="text-gray-800 whitespace-pre-wrap leading-relaxed text-base">
+                  {currentChallenge.passage}
+                </p>
+              </div>
+            )}
+
+            {currentChallenge.audioSrc && (
+              <div className="bg-white rounded-lg border p-4 mb-3">
+                <h3 className="font-semibold text-base mb-2.5">🔊 Audio</h3>
                 <audio controls className="w-full">
-                  <source src={challenge.audioSrc} type="audio/mpeg" />
+                  <source src={currentChallenge.audioSrc} type="audio/mpeg" />
                 </audio>
               </div>
             )}
@@ -299,9 +474,12 @@ export function PracticeQuiz({ challenge, courseId, lessonId }: PracticeQuizProp
             {/* Question */}
             <div className="bg-white rounded-lg border p-4 mb-3">
               <div className="flex items-start justify-between mb-3">
-                <h2 className="text-lg font-semibold text-gray-900 flex-1">
-                  {currentQuestion.questionText}
-                </h2>
+                <div className="flex-1">
+                  <h3 className="text-sm font-medium text-gray-500 mb-1">Câu hỏi {currentQuestionIndex + 1}:</h3>
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    {currentQuestion.text}
+                  </h2>
+                </div>
                 {submitted[currentQuestion.id] && (
                   <div className="flex-shrink-0 ml-3">
                     {isCurrentCorrect() ? (
@@ -393,6 +571,7 @@ export function PracticeQuiz({ challenge, courseId, lessonId }: PracticeQuizProp
                 </div>
               )}
             </div>
+          </div>
           </div>
         </div>
 
