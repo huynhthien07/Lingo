@@ -174,21 +174,10 @@ export function SpeakingPractice({ challenge, allChallenges, allProgress, course
         const data = await response.json();
         setSubmission(data.submission);
         setSubmitted(true);
-
-        // Show completion modal with celebration
-        setShowCompletionModal(true);
-        confetti({
-          particleCount: 100,
-          spread: 70,
-          origin: { y: 0.6 },
-          colors: ['#10B981', '#3B82F6', '#F59E0B']
-        });
-        playFinishSound();
+        toast.success("Đã nộp bài thành công!");
 
         // Refresh page to update progress
-        setTimeout(() => {
-          router.refresh();
-        }, 2000);
+        router.refresh();
       } else {
         const errorData = await response.json();
         toast.error(errorData.error || "Có lỗi xảy ra. Vui lòng thử lại!");
@@ -393,18 +382,39 @@ export function SpeakingPractice({ challenge, allChallenges, allProgress, course
 
             {/* Submission Status */}
             {submitted && submission && (
-              <div className="bg-white rounded-lg border p-6">
-                <div className="text-center">
+              <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border-2 border-green-300 p-6">
+                <div className="text-center mb-4">
                   <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-3" />
                   <h3 className="text-lg font-semibold mb-2">Đã nộp bài thành công!</h3>
                   <p className="text-gray-600 mb-4">
                     Bài nói của bạn đã được gửi đến giáo viên. Vui lòng chờ giáo viên chấm bài.
                   </p>
-                  <div className="text-sm text-gray-500">
+                  <div className="bg-white rounded-lg p-3 mb-4">
+                    <p className="text-sm text-gray-600 mb-1">Thời lượng</p>
+                    <p className="text-2xl font-bold text-blue-600">{formatTime(duration)}</p>
+                  </div>
+                  <div className="text-sm text-gray-500 mb-4">
                     <Clock className="h-4 w-4 inline mr-1" />
                     Nộp lúc: {new Date(submission.submittedAt).toLocaleString("vi-VN")}
                   </div>
                 </div>
+                <Button
+                  onClick={() => {
+                    setShowCompletionModal(true);
+                    confetti({
+                      particleCount: 100,
+                      spread: 70,
+                      origin: { y: 0.6 },
+                      colors: ['#10B981', '#3B82F6', '#F59E0B']
+                    });
+                    playFinishSound();
+                  }}
+                  className="w-full"
+                  size="lg"
+                >
+                  <CheckCircle2 className="h-5 w-5 mr-2" />
+                  Hoàn thành bài tập
+                </Button>
               </div>
             )}
           </div>

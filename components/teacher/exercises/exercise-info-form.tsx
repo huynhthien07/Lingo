@@ -118,6 +118,8 @@ export function ExerciseInfoForm({ exercise, onSave, saving }: ExerciseInfoFormP
             <option value="READING">Reading</option>
             <option value="WRITING">Writing</option>
             <option value="SPEAKING">Speaking</option>
+            <option value="VOCABULARY">Vocabulary</option>
+            <option value="GRAMMAR">Grammar</option>
           </select>
         </div>
 

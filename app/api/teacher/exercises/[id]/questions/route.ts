@@ -61,7 +61,7 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { text } = body;
+    const { text, imageSrc, correctAnswer, explanation } = body;
 
     if (!text || !text.trim()) {
       return NextResponse.json({ error: "Question text is required" }, { status: 400 });
@@ -82,6 +82,9 @@ export async function POST(
       .values({
         challengeId: exerciseId,
         text: text.trim(),
+        imageSrc: imageSrc || null,
+        correctAnswer: correctAnswer?.trim() || null,
+        explanation: explanation?.trim() || null,
         order: maxOrder + 1,
       })
       .returning();

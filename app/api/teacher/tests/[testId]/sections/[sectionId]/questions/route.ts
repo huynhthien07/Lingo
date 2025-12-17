@@ -18,7 +18,7 @@ export async function POST(
     const question = await addTestQuestion({
       sectionId: parseInt(sectionId),
       questionText: body.questionText,
-      passage: body.passage || null,
+      imageSrc: body.imageSrc || null,
       audioSrc: body.audioSrc || null,
       points: body.points,
       options: body.options,

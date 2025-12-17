@@ -7,7 +7,6 @@ import {
   LayoutDashboard,
   User,
   BookOpen,
-  FileCheck,
   CreditCard,
   MessageSquare,
   Trophy,
@@ -16,6 +15,7 @@ import {
   GraduationCap,
   ChevronLeft,
   ChevronRight,
+  ClipboardList,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -36,9 +36,9 @@ const menuItems = [
     icon: BookOpen,
   },
   {
-    title: "Admission Test",
-    href: "/student/admission-test",
-    icon: FileCheck,
+    title: "Tests",
+    href: "/student/tests",
+    icon: ClipboardList,
   },
   {
     title: "Flashcards",
