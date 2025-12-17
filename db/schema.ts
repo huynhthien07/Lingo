@@ -258,6 +258,9 @@ export const questions = pgTable("questions", {
     id: serial("id").primaryKey(),
     challengeId: integer("challenge_id").references(() => challenges.id, { onDelete: "cascade" }).notNull(),
     text: text("text").notNull(),
+    imageSrc: text("image_src"), // Image for question (e.g., diagram, chart)
+    correctAnswer: text("correct_answer"), // Correct answer for this specific question (e.g., for fill-in-blank, verb conjugation)
+    explanation: text("explanation"), // Explanation for this specific question's answer
     order: integer("order").notNull(),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
@@ -392,6 +395,7 @@ export const testSections = pgTable("test_sections", {
     order: integer("order").notNull(),
     duration: integer("duration"), // Section duration in minutes
     passage: text("passage"), // Shared passage for reading sections (all questions use this)
+    imageSrc: text("image_src"), // Shared image for section (e.g., context image, diagram)
     audioSrc: text("audio_src"), // Shared audio for listening sections (all questions use this)
 });
 
@@ -400,6 +404,8 @@ export const testQuestions = pgTable("test_questions", {
     id: serial("id").primaryKey(),
     sectionId: integer("section_id").references(() => testSections.id, { onDelete: "cascade" }).notNull(),
     questionText: text("question_text").notNull(),
+    imageSrc: text("image_src"), // Image for question (e.g., diagram, chart)
+    audioSrc: text("audio_src"), // Audio for individual question (if different from section audio)
     order: integer("order").notNull(),
     points: integer("points").notNull().default(1),
 });
@@ -436,6 +442,25 @@ export const testAnswers = pgTable("test_answers", {
     isCorrect: boolean("is_correct"),
     pointsEarned: integer("points_earned").default(0),
     answeredAt: timestamp("answered_at").defaultNow().notNull(),
+});
+
+// 3.21 Test submissions table - Speaking/Writing test submissions for teacher grading
+export const testSubmissions = pgTable("test_submissions", {
+    id: serial("id").primaryKey(),
+    attemptId: integer("attempt_id").references(() => testAttempts.id, { onDelete: "cascade" }).notNull(),
+    userId: text("user_id").references(() => users.userId, { onDelete: "cascade" }).notNull(),
+    testId: integer("test_id").references(() => tests.id, { onDelete: "cascade" }).notNull(),
+    questionId: integer("question_id").references(() => testQuestions.id, { onDelete: "cascade" }),
+    skillType: skillTypeEnum("skill_type").notNull(), // SPEAKING or WRITING
+    audioUrl: text("audio_url"), // For speaking submissions
+    textAnswer: text("text_answer"), // For writing submissions
+    score: integer("score"), // Score given by teacher
+    maxScore: integer("max_score").default(9), // Maximum score (IELTS band 9)
+    feedback: text("feedback"), // Teacher's feedback
+    status: submissionStatusEnum("status").notNull().default("PENDING"),
+    gradedBy: text("graded_by").references(() => users.userId, { onDelete: "set null" }),
+    gradedAt: timestamp("graded_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 // ============================================================================
@@ -850,6 +875,7 @@ export const testAttemptsRelations = relations(testAttempts, ({ one, many }) => 
         references: [tests.id],
     }),
     answers: many(testAnswers),
+    submissions: many(testSubmissions),
 }));
 
 // Test answers relations
@@ -865,6 +891,30 @@ export const testAnswersRelations = relations(testAnswers, ({ one }) => ({
     selectedOption: one(testQuestionOptions, {
         fields: [testAnswers.selectedOptionId],
         references: [testQuestionOptions.id],
+    }),
+}));
+
+// Test submissions relations
+export const testSubmissionsRelations = relations(testSubmissions, ({ one }) => ({
+    attempt: one(testAttempts, {
+        fields: [testSubmissions.attemptId],
+        references: [testAttempts.id],
+    }),
+    user: one(users, {
+        fields: [testSubmissions.userId],
+        references: [users.userId],
+    }),
+    test: one(tests, {
+        fields: [testSubmissions.testId],
+        references: [tests.id],
+    }),
+    question: one(testQuestions, {
+        fields: [testSubmissions.questionId],
+        references: [testQuestions.id],
+    }),
+    grader: one(users, {
+        fields: [testSubmissions.gradedBy],
+        references: [users.userId],
     }),
 }));
 

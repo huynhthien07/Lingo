@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { X, Plus, Trash2, Check, List } from "lucide-react";
 import { AudioUpload } from "@/components/ui/audio-upload";
+import { ImageUpload } from "@/components/ui/image-upload";
 import { RichTextEditor } from "../exercises/rich-text-editor";
 
 interface TestQuestion {
@@ -11,6 +12,7 @@ interface TestQuestion {
   questionText: string;
   passage: string | null;
   audioSrc: string | null;
+  imageSrc: string | null;
   order: number;
   points: number;
   options: TestQuestionOption[];
@@ -45,6 +47,7 @@ export function QuestionFormModal({
     questionText: question.questionText,
     passage: question.passage || "",
     audioSrc: question.audioSrc || "",
+    imageSrc: question.imageSrc || "",
     points: question.points,
   });
 
@@ -191,6 +194,17 @@ export function QuestionFormModal({
             <AudioUpload
               value={formData.audioSrc}
               onChange={(url) => setFormData({ ...formData, audioSrc: url })}
+            />
+          </div>
+
+          {/* Image */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Image (Optional - for questions with diagrams, charts, etc.)
+            </label>
+            <ImageUpload
+              value={formData.imageSrc}
+              onChange={(url) => setFormData({ ...formData, imageSrc: url })}
             />
           </div>
 

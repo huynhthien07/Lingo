@@ -17,7 +17,8 @@ const StudentFlashcardsPage = async () => {
 
   const role = await getUserRole(userId);
 
-  if (role !== "STUDENT") {
+  // Allow STUDENT and ADMIN to access flashcards
+  if (role !== "STUDENT" && role !== "ADMIN") {
     redirect("/");
   }
 

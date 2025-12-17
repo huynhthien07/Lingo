@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { AudioPlayer } from "@/components/ui/audio-player";
 
 interface PracticeClientProps {
   challenge: any;
@@ -152,13 +153,12 @@ export function PracticeClient({ challenge, courseId, lessonId }: PracticeClient
         )}
 
         {challenge.audioSrc && (
-          <Card className="mb-6">
-            <CardContent className="pt-6">
-              <audio controls className="w-full">
-                <source src={challenge.audioSrc} type="audio/mpeg" />
-              </audio>
-            </CardContent>
-          </Card>
+          <div className="mb-6">
+            <AudioPlayer
+              src={challenge.audioSrc}
+              title="🔊 Audio cho bài tập"
+            />
+          </div>
         )}
 
         {/* Question */}

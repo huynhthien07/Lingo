@@ -11,11 +11,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 interface LearningHistoryClientProps {
   writingSubmissions: any[];
   speakingSubmissions: any[];
+  testSubmissions?: any[];
 }
 
 export default function LearningHistoryClient({
   writingSubmissions,
   speakingSubmissions,
+  testSubmissions = [],
 }: LearningHistoryClientProps) {
   const [filter, setFilter] = useState<"ALL" | "GRADED" | "PENDING">("ALL");
 
@@ -28,6 +30,7 @@ export default function LearningHistoryClient({
 
   const filteredWriting = filterSubmissions(writingSubmissions);
   const filteredSpeaking = filterSubmissions(speakingSubmissions);
+  const filteredTestSubmissions = filterSubmissions(testSubmissions);
 
   const getStatusBadge = (status: string) => {
     if (status === "GRADED") {
@@ -85,7 +88,7 @@ export default function LearningHistoryClient({
 
         {/* Tabs */}
         <Tabs defaultValue="writing" className="w-full">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsList className="grid w-full max-w-2xl grid-cols-3">
             <TabsTrigger value="writing">
               <FileText className="h-4 w-4 mr-2" />
               Writing ({filteredWriting.length})
@@ -93,6 +96,10 @@ export default function LearningHistoryClient({
             <TabsTrigger value="speaking">
               <Mic className="h-4 w-4 mr-2" />
               Speaking ({filteredSpeaking.length})
+            </TabsTrigger>
+            <TabsTrigger value="tests">
+              <CheckCircle2 className="h-4 w-4 mr-2" />
+              Tests ({filteredTestSubmissions.length})
             </TabsTrigger>
           </TabsList>
 
@@ -289,6 +296,99 @@ export default function LearningHistoryClient({
                           </Link>
                         </div>
                       </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Test Submissions Tab */}
+          <TabsContent value="tests">
+            {filteredTestSubmissions.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <p className="text-gray-500">Chưa có bài test nào được chấm</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {filteredTestSubmissions.map((submission: any) => (
+                  <Card key={submission.id} className="hover:shadow-md transition-shadow">
+                    <CardContent className="p-6">
+                      <div className="grid grid-cols-12 gap-4 items-center">
+                        {/* Type Icon */}
+                        <div className="col-span-12 md:col-span-1 flex justify-center">
+                          {submission.skillType === "SPEAKING" ? (
+                            <div className="p-3 bg-blue-100 rounded-full">
+                              <Mic className="h-6 w-6 text-blue-600" />
+                            </div>
+                          ) : (
+                            <div className="p-3 bg-green-100 rounded-full">
+                              <FileText className="h-6 w-6 text-green-600" />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Test Info */}
+                        <div className="col-span-12 md:col-span-6">
+                          <h3 className="font-semibold text-gray-900 mb-1">
+                            {submission.testTitle || "Untitled Test"}
+                          </h3>
+                          <p className="text-sm text-gray-600 mb-2">
+                            {submission.questionText || "No question text"}
+                          </p>
+                          <div className="flex items-center gap-2 text-xs text-gray-500">
+                            <Badge variant={submission.skillType === "SPEAKING" ? "default" : "secondary"}>
+                              {submission.skillType}
+                            </Badge>
+                            {submission.gradedAt && (
+                              <span>Chấm: {formatDate(submission.gradedAt)}</span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Score */}
+                        <div className="col-span-6 md:col-span-2 text-center">
+                          {submission.status === "GRADED" && submission.score !== null ? (
+                            <div>
+                              <div className="text-2xl font-bold text-blue-600">
+                                {submission.score}/{submission.maxScore}
+                              </div>
+                              <p className="text-xs text-gray-500">Điểm</p>
+                            </div>
+                          ) : (
+                            <span className="text-sm text-gray-400">Chờ chấm</span>
+                          )}
+                        </div>
+
+                        {/* Grader */}
+                        <div className="col-span-6 md:col-span-2 text-center">
+                          {submission.graderName ? (
+                            <div>
+                              <p className="text-sm font-medium text-gray-700">
+                                {submission.graderName}
+                              </p>
+                              <p className="text-xs text-gray-500">Giáo viên</p>
+                            </div>
+                          ) : (
+                            <span className="text-sm text-gray-400">-</span>
+                          )}
+                        </div>
+
+                        {/* Status */}
+                        <div className="col-span-12 md:col-span-1 text-center">
+                          {getStatusBadge(submission.status)}
+                        </div>
+                      </div>
+
+                      {/* Feedback */}
+                      {submission.feedback && submission.status === "GRADED" && (
+                        <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                          <p className="text-sm font-semibold text-blue-900 mb-1">Nhận xét:</p>
+                          <p className="text-sm text-gray-700">{submission.feedback}</p>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 ))}

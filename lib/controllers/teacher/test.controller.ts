@@ -192,6 +192,7 @@ export async function addTestSection(data: {
   skillType: string;
   duration?: number;
   passage?: string;
+  imageSrc?: string;
   audioSrc?: string;
 }) {
   // Get current max order
@@ -211,6 +212,7 @@ export async function addTestSection(data: {
       order,
       duration: data.duration,
       passage: data.passage || null,
+      imageSrc: data.imageSrc || null,
       audioSrc: data.audioSrc || null,
     })
     .returning();
@@ -227,17 +229,23 @@ export async function updateTestSection(
     order?: number;
     duration?: number;
     passage?: string;
+    imageSrc?: string;
     audioSrc?: string;
   }
 ) {
+  const updateData: any = {};
+
+  if (data.title !== undefined) updateData.title = data.title;
+  if (data.skillType !== undefined) updateData.skillType = data.skillType as any;
+  if (data.order !== undefined) updateData.order = data.order;
+  if (data.duration !== undefined) updateData.duration = data.duration || null;
+  if (data.passage !== undefined) updateData.passage = data.passage || null;
+  if (data.imageSrc !== undefined) updateData.imageSrc = data.imageSrc || null;
+  if (data.audioSrc !== undefined) updateData.audioSrc = data.audioSrc || null;
+
   const [updatedSection] = await db
     .update(testSections)
-    .set({
-      ...data,
-      skillType: data.skillType as any,
-      passage: data.passage !== undefined ? data.passage : undefined,
-      audioSrc: data.audioSrc !== undefined ? data.audioSrc : undefined,
-    })
+    .set(updateData)
     .where(eq(testSections.id, sectionId))
     .returning();
 
@@ -254,6 +262,8 @@ export async function deleteTestSection(sectionId: number) {
 export async function addTestQuestion(data: {
   sectionId: number;
   questionText: string;
+  imageSrc?: string | null;
+  audioSrc?: string | null;
   points: number;
   options?: Array<{ text: string; isCorrect: boolean }>;
 }) {
@@ -270,6 +280,8 @@ export async function addTestQuestion(data: {
     .values({
       sectionId: data.sectionId,
       questionText: data.questionText,
+      imageSrc: data.imageSrc || null,
+      audioSrc: data.audioSrc || null,
       order,
       points: data.points,
     })
@@ -295,6 +307,8 @@ export async function updateTestQuestion(
   questionId: number,
   data: {
     questionText?: string;
+    imageSrc?: string | null;
+    audioSrc?: string | null;
     points?: number;
     options?: Array<{ text: string; isCorrect: boolean }>;
   }
@@ -303,6 +317,8 @@ export async function updateTestQuestion(
     .update(testQuestions)
     .set({
       questionText: data.questionText,
+      imageSrc: data.imageSrc !== undefined ? data.imageSrc : undefined,
+      audioSrc: data.audioSrc !== undefined ? data.audioSrc : undefined,
       points: data.points,
     })
     .where(eq(testQuestions.id, questionId))

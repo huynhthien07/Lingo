@@ -5,18 +5,17 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft,
-  Save,
   RotateCcw,
   CheckCircle2,
   XCircle,
-  ChevronDown,
-  ChevronUp,
   Trophy,
   Star,
-  ChevronRight
+  ChevronRight,
+  BookOpen
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { AudioPlayer } from "@/components/ui/audio-player";
 import { toast } from "sonner";
 import confetti from "canvas-confetti";
 import { playCorrectSound, playIncorrectSound, playFinishSound } from "@/lib/utils/sound";
@@ -34,10 +33,8 @@ export function PracticeQuiz({ challenge, allChallenges, allProgress, courseId, 
   const [currentChallengeIndex, setCurrentChallengeIndex] = useState(
     allChallenges.findIndex(c => c.id === challenge.id)
   );
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({});
-  const [submitted, setSubmitted] = useState<Record<number, boolean>>({});
-  const [showAnswer, setShowAnswer] = useState<Record<number, boolean>>({});
+  const [allSubmitted, setAllSubmitted] = useState(false);
   const [challengeCompleted, setChallengeCompleted] = useState(false);
   const [lessonCompleted, setLessonCompleted] = useState(false);
   const [score, setScore] = useState(0);
@@ -46,12 +43,11 @@ export function PracticeQuiz({ challenge, allChallenges, allProgress, courseId, 
 
   const currentChallenge = allChallenges[currentChallengeIndex];
   const questions = currentChallenge.questions || [];
-  const currentQuestion = questions[currentQuestionIndex];
   const totalQuestions = questions.length;
 
-  // Calculate progress based on submitted questions in current challenge
-  const submittedCount = Object.keys(submitted).filter(key => submitted[parseInt(key)]).length;
-  const progressPercentage = totalQuestions > 0 ? (submittedCount / totalQuestions) * 100 : 0;
+  // Calculate progress based on answered questions
+  const answeredCount = Object.keys(answers).length;
+  const progressPercentage = totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0;
 
   // Calculate overall lesson progress
   const completedChallengesCount = allChallenges.filter(c =>
@@ -74,91 +70,66 @@ export function PracticeQuiz({ challenge, allChallenges, allProgress, courseId, 
     };
   }, []);
 
-  // Check if current question is answered correctly
-  const isCurrentCorrect = () => {
-    if (!submitted[currentQuestion.id]) return null;
-    const selectedOptionId = answers[currentQuestion.id];
-    const correctOption = currentQuestion.options.find((opt: any) => opt.correct);
+  // Check if a question is answered correctly
+  const isQuestionCorrect = (questionId: number) => {
+    if (!allSubmitted) return null;
+    const selectedOptionId = answers[questionId];
+    const question = questions.find((q: any) => q.id === questionId);
+    const correctOption = question?.options.find((opt: any) => opt.correct);
     return selectedOptionId === correctOption?.id;
   };
 
   // Handle answer selection
-  const handleSelectOption = (optionId: number) => {
-    if (submitted[currentQuestion.id]) return; // Can't change after submit
-    
+  const handleSelectOption = (questionId: number, optionId: number) => {
+    if (allSubmitted) return; // Can't change after submit
+
     setAnswers({
       ...answers,
-      [currentQuestion.id]: optionId,
+      [questionId]: optionId,
     });
   };
 
-  // Handle submit current question
-  const handleSubmit = () => {
-    if (!answers[currentQuestion.id]) {
-      toast.error("Vui lòng chọn câu trả lời!");
+  // Handle submit all answers
+  const handleSubmitAll = () => {
+    // Check if all questions are answered
+    const unansweredQuestions = questions.filter((q: any) => !answers[q.id]);
+    if (unansweredQuestions.length > 0) {
+      toast.error(`Vui lòng trả lời tất cả ${unansweredQuestions.length} câu hỏi còn lại!`);
       return;
     }
 
-    setSubmitted({
-      ...submitted,
-      [currentQuestion.id]: true,
+    // Calculate score
+    let correctCount = 0;
+    questions.forEach((q: any) => {
+      const selectedOptionId = answers[q.id];
+      const correctOption = q.options.find((opt: any) => opt.correct);
+      if (selectedOptionId === correctOption?.id) {
+        correctCount++;
+      }
     });
 
-    const correct = isCurrentCorrect();
-    if (correct) {
-      toast.success("Chính xác! 🎉");
+    setScore(correctCount);
+    setAllSubmitted(true);
+
+    if (correctCount === totalQuestions) {
+      toast.success(`Hoàn hảo! Bạn đã trả lời đúng tất cả ${totalQuestions} câu! 🎉`);
       playCorrectSound();
     } else {
-      toast.error("Chưa đúng. Hãy xem đáp án!");
+      toast.info(`Bạn đã trả lời đúng ${correctCount}/${totalQuestions} câu`);
       playIncorrectSound();
     }
-  };
-
-  // Navigate to question
-  const goToQuestion = (index: number) => {
-    setCurrentQuestionIndex(index);
-  };
-
-  // Handle save progress
-  const handleSave = () => {
-    // TODO: Save to database
-    toast.success("Đã lưu tiến độ!");
   };
 
   // Handle reset
   const handleReset = () => {
     if (confirm("Bạn có chắc muốn làm lại bài tập? Tiến độ hiện tại sẽ bị xóa.")) {
       setAnswers({});
-      setSubmitted({});
-      setShowAnswer({});
-      setCurrentQuestionIndex(0);
+      setAllSubmitted(false);
       setChallengeCompleted(false);
       setScore(0);
       toast.info("Đã reset bài tập!");
     }
   };
-
-  // Check if current challenge completed
-  useEffect(() => {
-    const allSubmitted = questions.every((q: any) => submitted[q.id]);
-    if (allSubmitted && questions.length > 0 && !challengeCompleted) {
-      // Calculate score
-      let correctCount = 0;
-      questions.forEach((q: any) => {
-        const selectedOptionId = answers[q.id];
-        const correctOption = q.options.find((opt: any) => opt.correct);
-        if (selectedOptionId === correctOption?.id) {
-          correctCount++;
-        }
-      });
-      const challengeScore = Math.round((correctCount / questions.length) * 10); // 10 points per challenge
-      setScore(correctCount);
-      setChallengeCompleted(true);
-
-      // Submit progress to API
-      submitProgress(challengeScore);
-    }
-  }, [submitted, questions, answers, challengeCompleted]);
 
   const submitProgress = async (challengeScore: number) => {
     try {
@@ -175,6 +146,7 @@ export function PracticeQuiz({ challenge, allChallenges, allProgress, courseId, 
       if (response.ok) {
         const data = await response.json();
         setPointsEarned(data.pointsEarned);
+        setChallengeCompleted(true);
 
         if (data.lessonCompleted) {
           setLessonCompleted(true);
@@ -197,6 +169,17 @@ export function PracticeQuiz({ challenge, allChallenges, allProgress, courseId, 
     }
   };
 
+  // Handle complete challenge
+  const handleComplete = () => {
+    if (!allSubmitted) {
+      toast.error("Vui lòng nộp bài trước khi hoàn thành!");
+      return;
+    }
+
+    const challengeScore = Math.round((score / questions.length) * 10);
+    submitProgress(challengeScore);
+  };
+
   // Handle exit with confirmation
   const handleExit = () => {
     const hasProgress = Object.keys(answers).length > 0;
@@ -207,10 +190,7 @@ export function PracticeQuiz({ challenge, allChallenges, allProgress, courseId, 
     }
   };
 
-  const confirmExit = (save: boolean) => {
-    if (save) {
-      handleSave();
-    }
+  const confirmExit = () => {
     router.push(`/student/courses/${courseId}/lessons/${lessonId}`);
   };
 
@@ -236,14 +216,11 @@ export function PracticeQuiz({ challenge, allChallenges, allProgress, courseId, 
             <h3 className="text-lg font-semibold mb-2">Xác nhận thoát</h3>
             <p className="text-gray-600 mb-6">Bạn có muốn lưu tiến độ hiện tại không?</p>
             <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setShowExitConfirm(false)} className="flex-1">
+              <Button variant="secondaryOutline" onClick={() => setShowExitConfirm(false)} className="flex-1">
                 Hủy
               </Button>
-              <Button variant="outline" onClick={() => confirmExit(false)} className="flex-1">
-                Không lưu
-              </Button>
-              <Button onClick={() => confirmExit(true)} className="flex-1">
-                Lưu & Thoát
+              <Button onClick={() => confirmExit()} className="flex-1">
+                Thoát
               </Button>
             </div>
           </div>
@@ -296,7 +273,7 @@ export function PracticeQuiz({ challenge, allChallenges, allProgress, courseId, 
                   Quay lại bài học
                 </Button>
               )}
-              <Button variant="outline" onClick={handleReset} className="w-full">
+              <Button variant="secondaryOutline" onClick={handleReset} className="w-full">
                 Làm lại bài tập này
               </Button>
             </div>
@@ -343,7 +320,7 @@ export function PracticeQuiz({ challenge, allChallenges, allProgress, courseId, 
               <Button onClick={() => router.push(`/student/courses/${courseId}`)} className="w-full">
                 Quay lại khóa học
               </Button>
-              <Button variant="outline" onClick={() => router.push(`/student/courses/${courseId}/lessons/${lessonId}`)} className="w-full">
+              <Button variant="secondaryOutline" onClick={() => router.push(`/student/courses/${courseId}/lessons/${lessonId}`)} className="w-full">
                 Xem lại bài học
               </Button>
             </div>
@@ -362,11 +339,7 @@ export function PracticeQuiz({ challenge, allChallenges, allProgress, courseId, 
                 Thoát
               </Button>
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={handleSave}>
-                  <Save className="h-4 w-4 mr-1.5" />
-                  Lưu
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleReset}>
+                <Button variant="secondaryOutline" size="sm" onClick={handleReset}>
                   <RotateCcw className="h-4 w-4 mr-1.5" />
                   Làm lại
                 </Button>
@@ -376,7 +349,7 @@ export function PracticeQuiz({ challenge, allChallenges, allProgress, courseId, 
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-sm font-medium text-gray-700">
-                    Bài tập {currentChallengeIndex + 1}/{totalChallenges} - Câu {currentQuestionIndex + 1}/{totalQuestions}
+                    Bài tập {currentChallengeIndex + 1}/{totalChallenges} - {totalQuestions} câu hỏi
                   </span>
                   <span className="text-sm font-semibold text-blue-600">
                     {completedChallengesCount}/{totalChallenges} bài tập hoàn thành
@@ -463,156 +436,209 @@ export function PracticeQuiz({ challenge, allChallenges, allProgress, courseId, 
             )}
 
             {currentChallenge.audioSrc && (
-              <div className="bg-white rounded-lg border p-4 mb-3">
-                <h3 className="font-semibold text-base mb-2.5">🔊 Audio</h3>
-                <audio controls className="w-full">
-                  <source src={currentChallenge.audioSrc} type="audio/mpeg" />
-                </audio>
+              <div className="mb-3">
+                <AudioPlayer
+                  src={currentChallenge.audioSrc}
+                  title="🔊 Audio cho bài tập"
+                />
               </div>
             )}
 
-            {/* Question */}
-            <div className="bg-white rounded-lg border p-4 mb-3">
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex-1">
-                  <h3 className="text-sm font-medium text-gray-500 mb-1">Câu hỏi {currentQuestionIndex + 1}:</h3>
-                  <h2 className="text-lg font-semibold text-gray-900">
-                    {currentQuestion.text}
-                  </h2>
-                </div>
-                {submitted[currentQuestion.id] && (
-                  <div className="flex-shrink-0 ml-3">
-                    {isCurrentCorrect() ? (
-                      <CheckCircle2 className="h-7 w-7 text-green-500" />
-                    ) : (
-                      <XCircle className="h-7 w-7 text-red-500" />
-                    )}
-                  </div>
-                )}
-              </div>
+            {/* All Questions */}
+            <div className="space-y-4">
+              {questions.map((question: any, qIndex: number) => {
+                const isCorrect = isQuestionCorrect(question.id);
 
-              {/* Options */}
-              <div className="space-y-2.5">
-                {currentQuestion.options.map((option: any) => {
-                  const isSelected = answers[currentQuestion.id] === option.id;
-                  const isSubmitted = submitted[currentQuestion.id];
-                  const isCorrect = option.correct;
-
-                  let optionClass = "border-2 p-3.5 rounded-lg cursor-pointer transition-all ";
-                  if (isSubmitted) {
-                    if (isCorrect) {
-                      optionClass += "border-green-500 bg-green-50 ";
-                    } else if (isSelected && !isCorrect) {
-                      optionClass += "border-red-500 bg-red-50 ";
-                    } else {
-                      optionClass += "border-gray-200 bg-gray-50 ";
-                    }
-                  } else {
-                    optionClass += isSelected
-                      ? "border-blue-500 bg-blue-50 "
-                      : "border-gray-200 hover:border-blue-300 hover:bg-blue-50/50 ";
-                  }
-
-                  return (
-                    <div
-                      key={option.id}
-                      className={optionClass}
-                      onClick={() => handleSelectOption(option.id)}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                          isSelected ? "border-blue-500 bg-blue-500" : "border-gray-300"
-                        }`}>
-                          {isSelected && <div className="w-2.5 h-2.5 bg-white rounded-full" />}
-                        </div>
-                        <span className="text-gray-900 text-base">{option.text}</span>
+                return (
+                  <div key={question.id} className="bg-white rounded-lg border p-4">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <h3 className="text-sm font-medium text-gray-500 mb-1">Câu hỏi {qIndex + 1}:</h3>
+                        <h2 className="text-lg font-semibold text-gray-900">
+                          {question.text}
+                        </h2>
+                        {question.imageSrc && (
+                          <img
+                            src={question.imageSrc}
+                            alt={`Question ${qIndex + 1}`}
+                            className="mt-3 max-w-full h-auto rounded-lg border"
+                          />
+                        )}
                       </div>
+                      {allSubmitted && (
+                        <div className="flex-shrink-0 ml-3">
+                          {isCorrect ? (
+                            <CheckCircle2 className="h-7 w-7 text-green-500" />
+                          ) : (
+                            <XCircle className="h-7 w-7 text-red-500" />
+                          )}
+                        </div>
+                      )}
                     </div>
-                  );
-                })}
-              </div>
 
-              {/* Submit Button */}
-              {!submitted[currentQuestion.id] && (
-                <div className="mt-4">
-                  <Button onClick={handleSubmit} className="w-full" size="lg">
-                    Nộp câu trả lời
-                  </Button>
-                </div>
-              )}
+                    {/* Options */}
+                    <div className="space-y-2.5">
+                      {question.options.map((option: any) => {
+                        const isSelected = answers[question.id] === option.id;
+                        const isOptionCorrect = option.correct;
 
-              {/* Answer Explanation */}
-              {submitted[currentQuestion.id] && currentQuestion.explanation && (
-                <div className="mt-4">
-                  <button
-                    onClick={() => setShowAnswer({
-                      ...showAnswer,
-                      [currentQuestion.id]: !showAnswer[currentQuestion.id]
-                    })}
-                    className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium text-sm"
-                  >
-                    {showAnswer[currentQuestion.id] ? (
-                      <>
-                        <ChevronUp className="h-4 w-4" />
-                        Ẩn giải thích
-                      </>
-                    ) : (
-                      <>
-                        <ChevronDown className="h-4 w-4" />
-                        Xem giải thích
-                      </>
+                        let optionClass = "border-2 p-3.5 rounded-lg cursor-pointer transition-all ";
+                        if (allSubmitted) {
+                          if (isOptionCorrect) {
+                            optionClass += "border-green-500 bg-green-50 ";
+                          } else if (isSelected && !isOptionCorrect) {
+                            optionClass += "border-red-500 bg-red-50 ";
+                          } else {
+                            optionClass += "border-gray-200 bg-gray-50 ";
+                          }
+                        } else {
+                          optionClass += isSelected
+                            ? "border-blue-500 bg-blue-50 "
+                            : "border-gray-200 hover:border-blue-300 hover:bg-blue-50/50 ";
+                        }
+
+                        return (
+                          <div
+                            key={option.id}
+                            className={optionClass}
+                            onClick={() => handleSelectOption(question.id, option.id)}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                                isSelected ? "border-blue-500 bg-blue-500" : "border-gray-300"
+                              }`}>
+                                {isSelected && <div className="w-2.5 h-2.5 bg-white rounded-full" />}
+                              </div>
+                              <span className="text-gray-900 text-base">{option.text}</span>
+                              {allSubmitted && isOptionCorrect && (
+                                <CheckCircle2 className="h-5 w-5 text-green-600 ml-auto" />
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Show individual answer if question has correctAnswer */}
+                    {allSubmitted && question.correctAnswer && (
+                      <div className="mt-4 p-4 bg-green-50 rounded-lg border-2 border-green-300">
+                        <div className="flex items-start gap-3">
+                          <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                          <div className="flex-1">
+                            <p className="text-sm font-semibold text-green-900 mb-1">
+                              Đáp án đúng:
+                            </p>
+                            <p className="text-base text-gray-900 font-medium">
+                              {question.correctAnswer}
+                            </p>
+                            {question.explanation && (
+                              <div className="mt-2 pt-2 border-t border-green-200">
+                                <p className="text-sm text-gray-700">
+                                  <strong>💡 Giải thích:</strong> {question.explanation}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
                     )}
-                  </button>
-                  {showAnswer[currentQuestion.id] && (
-                    <div className="mt-2.5 p-3.5 bg-blue-50 rounded-lg border border-blue-200">
-                      <p className="text-sm text-gray-700 leading-relaxed">{currentQuestion.explanation}</p>
-                    </div>
-                  )}
-                </div>
-              )}
+
+                  </div>
+                );
+              })}
             </div>
+
+            {/* Submit All Button */}
+            {!allSubmitted && (
+              <div className="mt-6 bg-white rounded-lg border-2 border-blue-300 p-6">
+                <div className="text-center mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    Đã trả lời {answeredCount}/{totalQuestions} câu
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    {answeredCount === totalQuestions
+                      ? "Bạn đã trả lời tất cả câu hỏi. Nhấn nộp bài để xem kết quả!"
+                      : `Vui lòng trả lời ${totalQuestions - answeredCount} câu còn lại`
+                    }
+                  </p>
+                </div>
+                <Button
+                  onClick={handleSubmitAll}
+                  className="w-full"
+                  size="lg"
+                  disabled={answeredCount < totalQuestions}
+                >
+                  <CheckCircle2 className="h-5 w-5 mr-2" />
+                  Nộp bài
+                </Button>
+              </div>
+            )}
+
+            {/* Explanation Section - Show after submission (only for questions with explanation from challenge) */}
+            {allSubmitted && currentChallenge.explanation && (
+              <div className="mt-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border-2 border-blue-300 p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <BookOpen className="w-8 h-8 text-blue-600" />
+                  <h3 className="text-xl font-bold text-gray-900">
+                    Giải thích đáp án
+                  </h3>
+                </div>
+
+                <div className="bg-white rounded-lg p-5 border border-blue-200">
+                  <p className="text-gray-800 leading-relaxed whitespace-pre-wrap">
+                    {currentChallenge.explanation}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Complete Challenge Button */}
+            {allSubmitted && !challengeCompleted && (
+              <div className="mt-6 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border-2 border-green-300 p-6">
+                <div className="text-center mb-4">
+                  <Trophy className="w-12 h-12 text-green-500 mx-auto mb-3" />
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">
+                    Sẵn sàng hoàn thành?
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    Bạn có thể cuộn lên xem lại đáp án hoặc nhấn "Hoàn thành" để kết thúc bài tập
+                  </p>
+                </div>
+                <Button onClick={handleComplete} className="w-full" size="lg">
+                  <CheckCircle2 className="h-5 w-5 mr-2" />
+                  Hoàn thành bài tập
+                </Button>
+              </div>
+            )}
           </div>
           </div>
         </div>
 
-        {/* Footer - Question Navigation */}
+        {/* Footer - Progress Summary */}
         <div className="bg-white border-t sticky bottom-0 shadow-lg">
           <div className="max-w-[1400px] mx-auto px-4 py-3">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                {questions.map((q: any, index: number) => {
-                  const isAnswered = answers[q.id] !== undefined;
-                  const isSubmitted = submitted[q.id];
-                  const isCurrent = index === currentQuestionIndex;
-
-                  let btnClass = "w-11 h-11 rounded-lg font-semibold transition-all text-sm ";
-                  if (isCurrent) {
-                    btnClass += "ring-2 ring-offset-2 ring-blue-500 ";
-                  }
-                  if (isSubmitted) {
-                    const selectedOptionId = answers[q.id];
-                    const correctOption = q.options.find((opt: any) => opt.correct);
-                    const isCorrect = selectedOptionId === correctOption?.id;
-                    btnClass += isCorrect
-                      ? "bg-green-500 text-white hover:bg-green-600 shadow-md "
-                      : "bg-red-500 text-white hover:bg-red-600 shadow-md ";
-                  } else if (isAnswered) {
-                    btnClass += "bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-300 ";
-                  } else {
-                    btnClass += "bg-gray-100 text-gray-600 hover:bg-gray-200 border border-gray-300 ";
-                  }
-
-                  return (
-                    <button
-                      key={q.id}
-                      onClick={() => goToQuestion(index)}
-                      className={btnClass}
-                      title={`Câu ${index + 1}${isSubmitted ? (isAnswered && q.options.find((opt: any) => opt.correct)?.id === answers[q.id] ? ' - Đúng' : ' - Sai') : (isAnswered ? ' - Đã chọn' : ' - Chưa làm')}`}
-                    >
-                      {index + 1}
-                    </button>
-                  );
-                })}
+              <div className="flex items-center gap-4">
+                <div className="text-sm">
+                  <span className="text-gray-600">Tiến độ: </span>
+                  <span className="font-semibold text-gray-900">
+                    {answeredCount}/{totalQuestions} câu
+                  </span>
+                </div>
+                {allSubmitted && (
+                  <div className="text-sm">
+                    <span className="text-gray-600">Điểm: </span>
+                    <span className="font-semibold text-green-600">
+                      {score}/{totalQuestions}
+                    </span>
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="secondaryOutline" onClick={handleReset} size="sm">
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  Làm lại
+                </Button>
               </div>
             </div>
           </div>

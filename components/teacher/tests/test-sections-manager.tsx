@@ -19,6 +19,7 @@ import {
 import { TestQuestionsManager } from "./test-questions-manager";
 import { RichTextEditor } from "../exercises/rich-text-editor";
 import { AudioUpload } from "@/components/ui/audio-upload";
+import { ImageUpload } from "@/components/ui/image-upload";
 
 interface TestSection {
   id: number;
@@ -28,6 +29,7 @@ interface TestSection {
   order: number;
   duration: number | null;
   passage: string | null;
+  imageSrc: string | null;
   audioSrc: string | null;
   questions: any[];
 }
@@ -210,6 +212,21 @@ export function TestSectionsManager({
                     </div>
                   )}
 
+                  {/* Display Image if exists */}
+                  {section.imageSrc && (
+                    <div className="mb-4 p-4 bg-white rounded-lg border border-gray-200">
+                      <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                        <FileText className="w-4 h-4" />
+                        Section Image
+                      </h4>
+                      <img
+                        src={section.imageSrc}
+                        alt="Section context"
+                        className="max-w-full h-auto rounded-lg border"
+                      />
+                    </div>
+                  )}
+
                   {/* Display Audio if exists */}
                   {section.audioSrc && (
                     <div className="mb-4 p-4 bg-white rounded-lg border border-gray-200">
@@ -273,6 +290,7 @@ function SectionFormModal({
     skillType: section?.skillType || "LISTENING",
     duration: section?.duration || "",
     passage: section?.passage || "",
+    imageSrc: section?.imageSrc || "",
     audioSrc: section?.audioSrc || "",
   });
   const [saving, setSaving] = useState(false);
@@ -286,33 +304,50 @@ function SectionFormModal({
         ? `/api/teacher/tests/${testId}/sections/${section.id}`
         : `/api/teacher/tests/${testId}/sections`;
 
+      // Prepare data with proper types
+      const submitData = {
+        title: formData.title,
+        skillType: formData.skillType,
+        duration: formData.duration ? parseInt(formData.duration as string) : null,
+        passage: formData.passage || null,
+        imageSrc: formData.imageSrc || null,
+        audioSrc: formData.audioSrc || null,
+      };
+
+      console.log("Submitting section data:", submitData);
+
       const response = await fetch(url, {
         method: section ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(submitData),
       });
 
       if (response.ok) {
         onSuccess();
       } else {
-        alert("Failed to save section");
+        const errorData = await response.json();
+        console.error("Failed to save section:", errorData);
+        alert(`Failed to save section: ${errorData.error || "Unknown error"}`);
       }
     } catch (error) {
       console.error("Error saving section:", error);
-      alert("Failed to save section");
+      alert(`Failed to save section: ${error instanceof Error ? error.message : "Unknown error"}`);
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
-      <div className="bg-white rounded-lg p-6 w-full max-w-4xl my-8">
-        <h3 className="text-lg font-semibold mb-4">
-          {section ? "Edit Section" : "Add Section"}
-        </h3>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+      <div className="bg-white rounded-lg w-full max-w-4xl my-8 max-h-[90vh] flex flex-col">
+        <div className="p-6 border-b border-gray-200">
+          <h3 className="text-lg font-semibold">
+            {section ? "Edit Section" : "Add Section"}
+          </h3>
+        </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+          <div className="flex-1 overflow-y-auto p-6 space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Section Title
@@ -379,6 +414,20 @@ function SectionFormModal({
             </div>
           )}
 
+          {/* Image field for all sections */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Section Image (Optional)
+            </label>
+            <p className="text-xs text-gray-500 mb-2">
+              Add an image for context, diagram, chart, or illustration for this section
+            </p>
+            <ImageUpload
+              value={formData.imageSrc}
+              onChange={(value) => setFormData({ ...formData, imageSrc: value })}
+            />
+          </div>
+
           {/* Audio field for Listening sections */}
           {formData.skillType === "LISTENING" && (
             <div>
@@ -394,22 +443,26 @@ function SectionFormModal({
               />
             </div>
           )}
+          </div>
 
-          <div className="flex items-center gap-3 pt-4">
-            <button
-              type="submit"
-              disabled={saving}
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-            >
-              {saving ? "Saving..." : section ? "Update Section" : "Add Section"}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
-            >
-              Cancel
-            </button>
+          {/* Footer Buttons - Fixed at bottom */}
+          <div className="border-t border-gray-200 p-6">
+            <div className="flex items-center gap-3">
+              <button
+                type="submit"
+                disabled={saving}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+              >
+                {saving ? "Saving..." : section ? "Update Section" : "Add Section"}
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </form>
       </div>

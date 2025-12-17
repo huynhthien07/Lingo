@@ -313,6 +313,9 @@ function AddQuestionForm({
 }: AddQuestionFormProps) {
   const [formData, setFormData] = useState({
     text: "",
+    imageSrc: "",
+    correctAnswer: "",
+    explanation: "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -347,6 +350,53 @@ function AddQuestionForm({
               {exerciseType.includes("COMPLETION") || exerciseType.includes("SHORT_ANSWER")
                 ? "Use ___ (three underscores) to mark blanks"
                 : "Enter the question text"}
+            </p>
+          </div>
+
+          {canHaveImages && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Question Image (Optional)
+              </label>
+              <ImageUpload
+                value={formData.imageSrc}
+                onChange={(url) => setFormData({ ...formData, imageSrc: url })}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Upload an image for this question (e.g., diagram, chart, picture)
+              </p>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Correct Answer (Optional)
+            </label>
+            <input
+              type="text"
+              value={formData.correctAnswer}
+              onChange={(e) => setFormData({ ...formData, correctAnswer: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Enter the correct answer for this question"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              If this question has a specific correct answer (e.g., fill-in-blank, verb conjugation), enter it here. Leave empty if using multiple choice options.
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Explanation (Optional)
+            </label>
+            <textarea
+              value={formData.explanation}
+              onChange={(e) => setFormData({ ...formData, explanation: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              rows={3}
+              placeholder="Explain why this is the correct answer"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Provide an explanation for the correct answer to help students understand.
             </p>
           </div>
 

@@ -23,19 +23,14 @@ const CategoryLearningPage = async ({ params }: Props) => {
 
   const role = await getUserRole(userId);
 
-  if (role !== "STUDENT") {
+  // Allow STUDENT and ADMIN to access flashcards
+  if (role !== "STUDENT" && role !== "ADMIN") {
     redirect("/");
   }
 
   const { categoryId } = await params;
 
-  return (
-    <div className="h-full p-6">
-      <div className="max-w-4xl mx-auto">
-        <FlashcardLearning categoryId={parseInt(categoryId)} />
-      </div>
-    </div>
-  );
+  return <FlashcardLearning categoryId={parseInt(categoryId)} />;
 };
 
 export default CategoryLearningPage;

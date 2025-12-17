@@ -20,6 +20,9 @@ export async function POST(
       title: body.title,
       skillType: body.skillType,
       duration: body.duration,
+      passage: body.passage,
+      imageSrc: body.imageSrc,
+      audioSrc: body.audioSrc,
     });
 
     return NextResponse.json(section);
