@@ -1,12 +1,13 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import db from "@/db/drizzle";
-import { userProgress } from "@/db/schema";
+import { userProgress, courses } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { Trophy, Award, Zap, Star, Target } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import LeaderboardClient from "@/components/student/leaderboard-client";
 
 export default async function StudentGamificationPage() {
   const { userId } = await auth();
@@ -21,7 +22,9 @@ export default async function StudentGamificationPage() {
   });
 
   const points = progress?.points || 0;
-  const hearts = progress?.hearts || 5;
+
+  // Get all courses for leaderboard filter
+  const allCourses = await db.select({ id: courses.id, title: courses.title }).from(courses);
 
   // Calculate level based on points
   const level = Math.floor(points / 100) + 1;
@@ -67,23 +70,22 @@ export default async function StudentGamificationPage() {
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
-              <Zap className="h-5 w-5 text-red-600" />
-              <CardTitle>Hearts & Streaks</CardTitle>
+              <Zap className="h-5 w-5 text-orange-600" />
+              <CardTitle>Streaks</CardTitle>
             </div>
-            <CardDescription>Năng lượng và chuỗi ngày học</CardDescription>
+            <CardDescription>Chuỗi ngày học liên tục</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Hearts</span>
-              <span className="text-2xl font-bold text-red-600">{hearts}/5</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Chuỗi ngày học</span>
+              <span className="text-sm text-gray-600">Chuỗi ngày học hiện tại</span>
               <span className="text-2xl font-bold text-orange-600">0 ngày</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Kỷ lục chuỗi</span>
+              <span className="text-sm text-gray-600">Kỷ lục chuỗi dài nhất</span>
               <span className="text-2xl font-bold text-purple-600">0 ngày</span>
+            </div>
+            <div className="text-sm text-gray-500 mt-4">
+              Học mỗi ngày để duy trì chuỗi của bạn!
             </div>
           </CardContent>
         </Card>
@@ -143,21 +145,8 @@ export default async function StudentGamificationPage() {
         </CardContent>
       </Card>
 
-      {/* Leaderboard Preview */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Trophy className="h-5 w-5 text-yellow-600" />
-            <CardTitle>Bảng xếp hạng</CardTitle>
-          </div>
-          <CardDescription>Xem vị trí của bạn so với các học viên khác</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">
-            <p className="text-gray-600">Tính năng bảng xếp hạng đang được phát triển</p>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Leaderboard */}
+      <LeaderboardClient courses={allCourses} />
     </div>
   );
 }

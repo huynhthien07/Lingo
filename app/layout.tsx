@@ -1,6 +1,5 @@
 import { ExitModal } from '@/components/modals/exit-modal';
 import { ExitTestModal } from '@/components/modals/exit-test-modal';
-import { HeartsModal } from '@/components/modals/hearts-modal';
 import { PracticeModal } from '@/components/modals/practice-modal';
 import { Toaster } from '@/components/ui/sonner';
 import { Toaster as HotToaster } from 'react-hot-toast';
@@ -33,7 +32,6 @@ export default function RootLayout({
           <HotToaster position="top-center" />
           <ExitModal />
           <ExitTestModal />
-          <HeartsModal />
           <PracticeModal />
           <LoginTracker />
           {children}

@@ -5,19 +5,7 @@
 
 import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
-import db from "@/db/drizzle";
-import { users } from "@/db/schema";
-import { eq } from "drizzle-orm";
-import TestSubmissionsClient from "@/components/teacher/test-submissions-client";
-
-async function getUserRole(userId: string) {
-  const [user] = await db
-    .select({ role: users.role })
-    .from(users)
-    .where(eq(users.userId, userId))
-    .limit(1);
-  return user?.role;
-}
+import { TestSubmissionsListView } from "@/components/teacher/test-submissions-list-view";
 
 const TestSubmissionsPage = async () => {
   const { userId } = await auth();
@@ -26,13 +14,7 @@ const TestSubmissionsPage = async () => {
     redirect("/sign-in");
   }
 
-  const role = await getUserRole(userId);
-
-  if (role !== "TEACHER" && role !== "ADMIN") {
-    redirect("/");
-  }
-
-  return <TestSubmissionsClient />;
+  return <TestSubmissionsListView />;
 };
 
 export default TestSubmissionsPage;

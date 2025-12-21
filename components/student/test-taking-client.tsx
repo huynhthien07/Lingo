@@ -142,12 +142,16 @@ export function TestTakingClient({ testId }: TestTakingClientProps) {
     newAnswers.push({ questionId, selectedOptionId, textAnswer });
     setAnswers(newAnswers);
 
+    // Get skill type from question
+    const question = allQuestions.find((q) => q.id === questionId);
+    const skillType = question?.section?.skillType;
+
     // Save to server
     try {
       await fetch(`/api/student/tests/attempts/${attemptId}/answer`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ questionId, selectedOptionId, textAnswer }),
+        body: JSON.stringify({ questionId, selectedOptionId, textAnswer, skillType }),
       });
     } catch (error) {
       console.error("Error saving answer:", error);
@@ -170,20 +174,20 @@ export function TestTakingClient({ testId }: TestTakingClientProps) {
         const error = await response.json();
         console.error("Error submitting test:", error);
         toast.error(error.error || "Có lỗi khi nộp bài");
+        setSubmitting(false);
         return;
       }
 
       const result = await response.json();
+      toast.success("Nộp bài thành công!");
 
-      // Close the confirmation dialog
-      setShowConfirmSubmit(false);
-
-      // Redirect to results page
-      router.push(`/student/tests/${testId}/result/${attemptId}`);
+      // Keep popup open for 2 seconds, then redirect
+      setTimeout(() => {
+        router.push(`/student/tests/${testId}/result/${attemptId}`);
+      }, 2000);
     } catch (error) {
       console.error("Error submitting test:", error);
       toast.error("Có lỗi khi nộp bài");
-    } finally {
       setSubmitting(false);
     }
   };
@@ -437,6 +441,7 @@ export function TestTakingClient({ testId }: TestTakingClientProps) {
                 startTime={startTime}
                 onTimeUp={handleTimeUp}
                 isStarted={isStarted}
+                isPaused={submitting}
               />
             )}
 
@@ -466,22 +471,33 @@ export function TestTakingClient({ testId }: TestTakingClientProps) {
       </div>
 
       {/* Submit Confirmation Dialog */}
-      <AlertDialog open={showConfirmSubmit} onOpenChange={setShowConfirmSubmit}>
+      <AlertDialog open={showConfirmSubmit} onOpenChange={(open) => !submitting && setShowConfirmSubmit(open)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Xác nhận nộp bài?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {submitting ? "Đang nộp bài..." : "Xác nhận nộp bài?"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Bạn đã trả lời {answeredCount} / {allQuestions.length} câu hỏi.
-              {answeredCount < allQuestions.length && (
-                <span className="block mt-2 text-orange-600">
-                  Bạn còn {allQuestions.length - answeredCount} câu chưa trả
-                  lời. Bạn có chắc chắn muốn nộp bài?
-                </span>
+              {submitting ? (
+                <div className="flex items-center gap-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                  <span>Vui lòng đợi, hệ thống đang xử lý bài làm của bạn...</span>
+                </div>
+              ) : (
+                <>
+                  Bạn đã trả lời {answeredCount} / {allQuestions.length} câu hỏi.
+                  {answeredCount < allQuestions.length && (
+                    <span className="block mt-2 text-orange-600">
+                      Bạn còn {allQuestions.length - answeredCount} câu chưa trả
+                      lời. Bạn có chắc chắn muốn nộp bài?
+                    </span>
+                  )}
+                </>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Tiếp tục làm bài</AlertDialogCancel>
+            <AlertDialogCancel disabled={submitting}>Tiếp tục làm bài</AlertDialogCancel>
             <AlertDialogAction onClick={handleSubmitTest} disabled={submitting}>
               {submitting ? "Đang nộp..." : "Nộp bài"}
             </AlertDialogAction>

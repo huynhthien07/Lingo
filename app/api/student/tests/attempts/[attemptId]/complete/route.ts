@@ -6,15 +6,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import db from "@/db/drizzle";
-import { testAttempts, testAnswers, testSubmissions, testQuestions, testSections } from "@/db/schema";
-import { eq, and, inArray } from "drizzle-orm";
+import { testAttempts, testAnswers, testSubmissions, testQuestions } from "@/db/schema";
+import { eq, and } from "drizzle-orm";
 
 /**
  * POST /api/student/tests/attempts/[attemptId]/complete
  * Mark test as completed and calculate final score
  */
 export async function POST(
-  req: NextRequest,
+  _req: NextRequest,
   context: { params: Promise<{ attemptId: string }> }
 ) {
   try {
@@ -31,37 +31,27 @@ export async function POST(
       return NextResponse.json({ error: "Invalid attempt ID" }, { status: 400 });
     }
 
-    // Verify attempt belongs to user
-    const attempt = await db.query.testAttempts.findFirst({
-      where: and(
+    // Verify attempt belongs to user (lightweight query)
+    const [attempt] = await db
+      .select()
+      .from(testAttempts)
+      .where(and(
         eq(testAttempts.id, attemptIdNum),
         eq(testAttempts.userId, userId)
-      ),
-      with: {
-        answers: {
-          with: {
-            question: {
-              with: {
-                section: true,
-              },
-            },
-          },
-        },
-      },
-    });
+      ))
+      .limit(1);
 
     if (!attempt) {
       return NextResponse.json({ error: "Attempt not found" }, { status: 404 });
     }
 
-    // If already completed, return the existing result instead of error
+    // If already completed, return the existing result
     if (attempt.status === "COMPLETED") {
-      // Count speaking/writing answers
-      const speakingWritingCount = attempt.answers.filter(
-        (answer) =>
-          answer.question?.section?.skillType === "SPEAKING" ||
-          answer.question?.section?.skillType === "WRITING"
-      ).length;
+      // Quick count of pending submissions
+      const pendingCount = await db
+        .select({ count: testSubmissions.id })
+        .from(testSubmissions)
+        .where(eq(testSubmissions.attemptId, attemptIdNum));
 
       return NextResponse.json({
         attempt,
@@ -69,39 +59,37 @@ export async function POST(
         totalPoints: attempt.totalPoints || 0,
         percentage: attempt.totalPoints ? Math.round(((attempt.score || 0) / attempt.totalPoints) * 100) : 0,
         bandScore: attempt.bandScore || 0,
-        hasPendingSubmissions: speakingWritingCount > 0,
-        pendingSubmissionsCount: speakingWritingCount,
+        hasPendingSubmissions: pendingCount.length > 0,
+        pendingSubmissionsCount: pendingCount.length,
         alreadyCompleted: true,
       });
     }
 
-    // Separate speaking/writing from other questions
-    const speakingWritingAnswers = attempt.answers.filter(
-      (answer) =>
-        answer.question?.section?.skillType === "SPEAKING" ||
-        answer.question?.section?.skillType === "WRITING"
-    );
+    // Get answers with question info (optimized query - only non-speaking/writing)
+    const answers = await db
+      .select({
+        answerId: testAnswers.id,
+        questionId: testAnswers.questionId,
+        pointsEarned: testAnswers.pointsEarned,
+        questionPoints: testQuestions.points,
+      })
+      .from(testAnswers)
+      .leftJoin(testQuestions, eq(testAnswers.questionId, testQuestions.id))
+      .where(eq(testAnswers.attemptId, attemptIdNum));
 
-    const otherAnswers = attempt.answers.filter(
-      (answer) =>
-        answer.question?.section?.skillType !== "SPEAKING" &&
-        answer.question?.section?.skillType !== "WRITING"
-    );
-
-    // Calculate total score (only for non-speaking/writing questions)
-    const totalScore = otherAnswers.reduce(
+    // Calculate total score
+    const totalScore = answers.reduce(
       (sum, answer) => sum + (answer.pointsEarned || 0),
       0
     );
 
-    // Calculate total possible points (only for non-speaking/writing questions)
-    const totalPossiblePoints = otherAnswers.reduce(
-      (sum, answer) => sum + (answer.question?.points || 0),
+    // Calculate total possible points
+    const totalPossiblePoints = answers.reduce(
+      (sum, answer) => sum + (answer.questionPoints || 0),
       0
     );
 
     // Calculate band score (simplified IELTS conversion)
-    // Only calculate if there are gradable questions
     let bandScore = 0;
     let percentage = 0;
 
@@ -118,41 +106,14 @@ export async function POST(
       else bandScore = 4.0;
     }
 
-    // Create submissions for speaking/writing questions
-    if (speakingWritingAnswers.length > 0) {
-      for (const answer of speakingWritingAnswers) {
-        if (!answer.question || !answer.question.section) continue;
-
-        const skillType = answer.question.section.skillType;
-        if (skillType !== "SPEAKING" && skillType !== "WRITING") continue;
-
-        // Check if submission already exists
-        const [existingSubmission] = await db
-          .select()
-          .from(testSubmissions)
-          .where(
-            and(
-              eq(testSubmissions.attemptId, attemptIdNum),
-              eq(testSubmissions.questionId, answer.questionId)
-            )
-          )
-          .limit(1);
-
-        if (!existingSubmission && answer.textAnswer) {
-          // Create new submission
-          await db.insert(testSubmissions).values({
-            attemptId: attemptIdNum,
-            userId,
-            testId: attempt.testId,
-            questionId: answer.questionId,
-            skillType,
-            audioUrl: skillType === "SPEAKING" ? answer.textAnswer : null,
-            textAnswer: skillType === "WRITING" ? answer.textAnswer : null,
-            status: "PENDING",
-          });
-        }
-      }
-    }
+    // Count pending submissions (speaking/writing already saved)
+    const pendingSubmissions = await db
+      .select({ id: testSubmissions.id })
+      .from(testSubmissions)
+      .where(and(
+        eq(testSubmissions.attemptId, attemptIdNum),
+        eq(testSubmissions.status, "PENDING")
+      ));
 
     // Update attempt
     const [updatedAttempt] = await db
@@ -173,8 +134,8 @@ export async function POST(
       totalPoints: totalPossiblePoints,
       percentage: Math.round(percentage),
       bandScore,
-      hasPendingSubmissions: speakingWritingAnswers.length > 0,
-      pendingSubmissionsCount: speakingWritingAnswers.length,
+      hasPendingSubmissions: pendingSubmissions.length > 0,
+      pendingSubmissionsCount: pendingSubmissions.length,
     });
   } catch (error) {
     console.error("Error completing test:", error);

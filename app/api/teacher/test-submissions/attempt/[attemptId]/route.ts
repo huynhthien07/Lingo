@@ -55,7 +55,7 @@ export async function GET(
         attemptCompletedAt: testAttempts.completedAt,
         testTitle: tests.title,
         testType: tests.testType,
-        studentName: users.name,
+        studentName: users.userName,
         studentEmail: users.email,
       })
       .from(testAttempts)
@@ -70,24 +70,52 @@ export async function GET(
 
     // Get all submissions for this attempt
     const rawSubmissions = await db
-      .select()
+      .select({
+        // Submission fields
+        id: testSubmissions.id,
+        questionId: testSubmissions.questionId,
+        skillType: testSubmissions.skillType,
+        audioUrl: testSubmissions.audioUrl,
+        textAnswer: testSubmissions.textAnswer,
+        score: testSubmissions.score,
+        maxScore: testSubmissions.maxScore,
+        feedback: testSubmissions.feedback,
+        status: testSubmissions.status,
+        fluencyCoherenceScore: testSubmissions.fluencyCoherenceScore,
+        pronunciationScore: testSubmissions.pronunciationScore,
+        taskAchievementScore: testSubmissions.taskAchievementScore,
+        coherenceCohesionScore: testSubmissions.coherenceCohesionScore,
+        lexicalResourceScore: testSubmissions.lexicalResourceScore,
+        grammaticalRangeScore: testSubmissions.grammaticalRangeScore,
+        overallBandScore: testSubmissions.overallBandScore,
+        // Question fields
+        questionText: testQuestions.questionText,
+      })
       .from(testSubmissions)
       .leftJoin(testQuestions, eq(testSubmissions.questionId, testQuestions.id))
       .where(eq(testSubmissions.attemptId, attemptIdNum))
       .orderBy(testSubmissions.id);
 
-    // Transform results
-    const submissions = rawSubmissions.map((row: any) => ({
-      id: row.test_submissions.id,
-      questionId: row.test_submissions.questionId,
-      skillType: row.test_submissions.skillType,
-      audioUrl: row.test_submissions.audioUrl,
-      textAnswer: row.test_submissions.textAnswer,
-      score: row.test_submissions.score,
-      maxScore: row.test_submissions.maxScore,
-      feedback: row.test_submissions.feedback,
-      status: row.test_submissions.status,
-      questionText: row.test_questions?.questionText,
+    // Transform results (already flat from select)
+    const submissions = rawSubmissions.map((row) => ({
+      id: row.id,
+      questionId: row.questionId,
+      skillType: row.skillType,
+      audioUrl: row.audioUrl,
+      textAnswer: row.textAnswer,
+      score: row.score,
+      maxScore: row.maxScore,
+      feedback: row.feedback,
+      status: row.status,
+      questionText: row.questionText,
+      // Criteria scores
+      fluencyCoherenceScore: row.fluencyCoherenceScore,
+      pronunciationScore: row.pronunciationScore,
+      taskAchievementScore: row.taskAchievementScore,
+      coherenceCohesionScore: row.coherenceCohesionScore,
+      lexicalResourceScore: row.lexicalResourceScore,
+      grammaticalRangeScore: row.grammaticalRangeScore,
+      overallBandScore: row.overallBandScore,
     }));
 
     const result = {

@@ -40,20 +40,17 @@ export const upsertChallengeProgress = async (challengeId: number) => {
 
     const isPractice = !!existingChallengeProgress;
 
-    if (currentUserProgress.hearts === 0 && !isPractice && !userSubscription?.isActive){
-        return {error: "hearts"};
-    }
+    // Hearts system removed - no longer needed
 
     if (isPractice){
         await db.update(challengeProgress).set({
-            completed:true,            
+            completed:true,
         }).where(eq(challengeProgress.id, existingChallengeProgress.id));
 
         await db.update(userProgress).set({
-            hearts:Math.min(currentUserProgress.hearts+1,5),
             points: currentUserProgress.points +10,
         }).where(eq(userProgress.userId, userId));
-        
+
         revalidatePath("/learn");
         revalidatePath("/lesson");
         revalidatePath("quests");

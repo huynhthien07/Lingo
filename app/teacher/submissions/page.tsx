@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { SubmissionsListView } from "@/components/teacher/submissions/submissions-list-view";
+import { UnifiedSubmissionsList } from "@/components/teacher/unified-submissions-list";
 
 export default async function SubmissionsPage() {
   const { userId } = await auth();
@@ -9,6 +9,6 @@ export default async function SubmissionsPage() {
     redirect("/sign-in");
   }
 
-  return <SubmissionsListView />;
+  return <UnifiedSubmissionsList />;
 }
 

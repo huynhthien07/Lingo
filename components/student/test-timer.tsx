@@ -9,14 +9,15 @@ interface TestTimerProps {
   startTime: Date;
   onTimeUp: () => void;
   isStarted: boolean;
+  isPaused?: boolean; // Pause timer when submitting
 }
 
-export function TestTimer({ duration, startTime, onTimeUp, isStarted }: TestTimerProps) {
+export function TestTimer({ duration, startTime, onTimeUp, isStarted, isPaused = false }: TestTimerProps) {
   const [timeLeft, setTimeLeft] = useState(duration * 60); // Convert to seconds
   const [isWarning, setIsWarning] = useState(false);
 
   useEffect(() => {
-    if (!isStarted) return;
+    if (!isStarted || isPaused) return;
 
     const interval = setInterval(() => {
       const now = new Date().getTime();
@@ -36,7 +37,7 @@ export function TestTimer({ duration, startTime, onTimeUp, isStarted }: TestTime
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [duration, startTime, onTimeUp, isStarted]);
+  }, [duration, startTime, onTimeUp, isStarted, isPaused]);
 
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
