@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import db from "@/db/drizzle";
-import { testAttempts, testAnswers, testQuestions, testQuestionOptions } from "@/db/schema";
+import { testAttempts, testAnswers, testQuestions, testQuestionOptions, testSubmissions } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 
 /**
@@ -32,7 +32,7 @@ export async function POST(
     }
 
     const body = await req.json();
-    const { questionId, selectedOptionId, textAnswer } = body;
+    const { questionId, selectedOptionId, textAnswer, skillType } = body;
 
     // Verify attempt belongs to user and is in progress
     const attempt = await db.query.testAttempts.findFirst({
@@ -53,11 +53,12 @@ export async function POST(
       );
     }
 
-    // Get question to determine if answer is correct
+    // Get question to determine skill type and if answer is correct
     const question = await db.query.testQuestions.findFirst({
       where: eq(testQuestions.id, questionId),
       with: {
         options: true,
+        section: true,
       },
     });
 
@@ -65,6 +66,52 @@ export async function POST(
       return NextResponse.json({ error: "Question not found" }, { status: 404 });
     }
 
+    const questionSkillType = question.section?.skillType;
+
+    // For SPEAKING/WRITING, save to testSubmissions instead of testAnswers
+    if (questionSkillType === "SPEAKING" || questionSkillType === "WRITING") {
+      // Check if submission already exists
+      const existingSubmission = await db.query.testSubmissions.findFirst({
+        where: and(
+          eq(testSubmissions.attemptId, attemptIdNum),
+          eq(testSubmissions.questionId, questionId)
+        ),
+      });
+
+      let submission;
+
+      if (existingSubmission) {
+        // Update existing submission
+        [submission] = await db
+          .update(testSubmissions)
+          .set({
+            audioUrl: questionSkillType === "SPEAKING" ? textAnswer : null,
+            textAnswer: questionSkillType === "WRITING" ? textAnswer : null,
+            status: "PENDING",
+          })
+          .where(eq(testSubmissions.id, existingSubmission.id))
+          .returning();
+      } else {
+        // Create new submission
+        [submission] = await db
+          .insert(testSubmissions)
+          .values({
+            attemptId: attemptIdNum,
+            userId,
+            testId: attempt.testId,
+            questionId,
+            skillType: questionSkillType,
+            audioUrl: questionSkillType === "SPEAKING" ? textAnswer : null,
+            textAnswer: questionSkillType === "WRITING" ? textAnswer : null,
+            status: "PENDING",
+          })
+          .returning();
+      }
+
+      return NextResponse.json(submission);
+    }
+
+    // For other question types (LISTENING, READING, etc.), save to testAnswers
     let isCorrect = false;
     let pointsEarned = 0;
 

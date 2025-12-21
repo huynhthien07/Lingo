@@ -454,8 +454,26 @@ export const testSubmissions = pgTable("test_submissions", {
     skillType: skillTypeEnum("skill_type").notNull(), // SPEAKING or WRITING
     audioUrl: text("audio_url"), // For speaking submissions
     textAnswer: text("text_answer"), // For writing submissions
-    score: integer("score"), // Score given by teacher
+
+    // Overall score (deprecated - use criteria scores instead)
+    score: integer("score"), // Overall score (for backward compatibility)
     maxScore: integer("max_score").default(9), // Maximum score (IELTS band 9)
+
+    // Speaking criteria scores (0-9 scale)
+    fluencyCoherenceScore: real("fluency_coherence_score"), // Speaking: Fluency & Coherence
+    pronunciationScore: real("pronunciation_score"), // Speaking: Pronunciation
+
+    // Writing criteria scores (0-9 scale)
+    taskAchievementScore: real("task_achievement_score"), // Writing: Task Achievement
+    coherenceCohesionScore: real("coherence_cohesion_score"), // Writing/Speaking: Coherence & Cohesion
+
+    // Common criteria scores (0-9 scale)
+    lexicalResourceScore: real("lexical_resource_score"), // Both: Lexical Resource (Vocabulary)
+    grammaticalRangeScore: real("grammatical_range_score"), // Both: Grammatical Range & Accuracy
+
+    // Overall band score (calculated from criteria scores)
+    overallBandScore: real("overall_band_score"), // Average of all criteria scores
+
     feedback: text("feedback"), // Teacher's feedback
     status: submissionStatusEnum("status").notNull().default("PENDING"),
     gradedBy: text("graded_by").references(() => users.userId, { onDelete: "set null" }),

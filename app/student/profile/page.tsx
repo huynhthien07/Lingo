@@ -84,14 +84,6 @@ export default async function StudentProfilePage() {
                   <div className="text-3xl font-bold text-blue-600">{progress?.points || 0}</div>
                 </div>
 
-                <div className="bg-red-50 p-4 rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Heart className="h-5 w-5 text-red-600" />
-                    <span className="text-sm font-medium text-red-900">Hearts</span>
-                  </div>
-                  <div className="text-3xl font-bold text-red-600">{progress?.hearts || 5}</div>
-                </div>
-
                 <div className="bg-green-50 p-4 rounded-lg">
                   <div className="flex items-center gap-2 mb-2">
                     <Zap className="h-5 w-5 text-green-600" />

@@ -39,16 +39,7 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get("status") || "PENDING";
     const skillType = searchParams.get("skillType");
 
-    // Build query - using simpler approach to avoid Drizzle ORM issues
-    const baseQuery = db
-      .select()
-      .from(testSubmissions)
-      .leftJoin(tests, eq(testSubmissions.testId, tests.id))
-      .leftJoin(testQuestions, eq(testSubmissions.questionId, testQuestions.id))
-      .leftJoin(users, eq(testSubmissions.userId, users.userId))
-      .leftJoin(testAttempts, eq(testSubmissions.attemptId, testAttempts.id));
-
-    // Apply filters
+    // Build query - get submissions first, then join data separately to avoid Drizzle ORM issues
     const conditions = [];
     if (status) {
       conditions.push(eq(testSubmissions.status, status as any));
@@ -57,40 +48,88 @@ export async function GET(request: NextRequest) {
       conditions.push(eq(testSubmissions.skillType, skillType as any));
     }
 
-    let query = baseQuery;
+    let baseSubmissions = db
+      .select({
+        id: testSubmissions.id,
+        attemptId: testSubmissions.attemptId,
+        userId: testSubmissions.userId,
+        testId: testSubmissions.testId,
+        questionId: testSubmissions.questionId,
+        skillType: testSubmissions.skillType,
+        audioUrl: testSubmissions.audioUrl,
+        textAnswer: testSubmissions.textAnswer,
+        score: testSubmissions.score,
+        maxScore: testSubmissions.maxScore,
+        fluencyCoherenceScore: testSubmissions.fluencyCoherenceScore,
+        pronunciationScore: testSubmissions.pronunciationScore,
+        taskAchievementScore: testSubmissions.taskAchievementScore,
+        coherenceCohesionScore: testSubmissions.coherenceCohesionScore,
+        lexicalResourceScore: testSubmissions.lexicalResourceScore,
+        grammaticalRangeScore: testSubmissions.grammaticalRangeScore,
+        overallBandScore: testSubmissions.overallBandScore,
+        feedback: testSubmissions.feedback,
+        status: testSubmissions.status,
+        gradedBy: testSubmissions.gradedBy,
+        gradedAt: testSubmissions.gradedAt,
+        createdAt: testSubmissions.createdAt,
+      })
+      .from(testSubmissions)
+      .orderBy(desc(testSubmissions.createdAt));
+
     if (conditions.length > 0) {
-      query = query.where(and(...conditions)) as any;
+      baseSubmissions = baseSubmissions.where(and(...conditions)) as any;
     }
 
-    // Order by creation date (newest first)
-    const rawResults = await query.orderBy(desc(testSubmissions.createdAt));
+    const rawSubmissions = await baseSubmissions;
 
-    // Transform results to flatten the joined data
-    const submissions = rawResults.map((row: any) => ({
-      id: row.test_submissions.id,
-      attemptId: row.test_submissions.attemptId,
-      userId: row.test_submissions.userId,
-      testId: row.test_submissions.testId,
-      questionId: row.test_submissions.questionId,
-      skillType: row.test_submissions.skillType,
-      audioUrl: row.test_submissions.audioUrl,
-      textAnswer: row.test_submissions.textAnswer,
-      score: row.test_submissions.score,
-      maxScore: row.test_submissions.maxScore,
-      feedback: row.test_submissions.feedback,
-      status: row.test_submissions.status,
-      gradedBy: row.test_submissions.gradedBy,
-      gradedAt: row.test_submissions.gradedAt,
-      createdAt: row.test_submissions.createdAt,
-      // Join data
-      testTitle: row.tests?.title,
-      testType: row.tests?.testType,
-      questionText: row.test_questions?.questionText,
-      studentName: row.users?.name,
-      studentEmail: row.users?.email,
-      attemptStartedAt: row.test_attempts?.startedAt,
-      attemptCompletedAt: row.test_attempts?.completedAt,
-    }));
+    // Enrich submissions with related data
+    const submissions = await Promise.all(
+      rawSubmissions.map(async (submission: any) => {
+        // Get test info
+        const testResults = await db
+          .select({ title: tests.title, testType: tests.testType })
+          .from(tests)
+          .where(eq(tests.id, submission.testId))
+          .limit(1);
+        const test = testResults[0] || null;
+
+        // Get student info
+        const [student] = await db
+          .select({ name: users.userName, email: users.email })
+          .from(users)
+          .where(eq(users.userId, submission.userId))
+          .limit(1);
+
+        // Get attempt info
+        const [attempt] = await db
+          .select({ startedAt: testAttempts.startedAt, completedAt: testAttempts.completedAt })
+          .from(testAttempts)
+          .where(eq(testAttempts.id, submission.attemptId))
+          .limit(1);
+
+        // Get question text if available
+        let questionText = null;
+        if (submission.questionId) {
+          const [question] = await db
+            .select({ questionText: testQuestions.questionText })
+            .from(testQuestions)
+            .where(eq(testQuestions.id, submission.questionId))
+            .limit(1);
+          questionText = question?.questionText || null;
+        }
+
+        return {
+          ...submission,
+          testTitle: test?.title || null,
+          testType: test?.testType || null,
+          studentName: student?.name || null,
+          studentEmail: student?.email || null,
+          attemptStartedAt: attempt?.startedAt || null,
+          attemptCompletedAt: attempt?.completedAt || null,
+          questionText,
+        };
+      })
+    );
 
     console.log("✅ Fetched submissions:", submissions.length);
 

@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
         testTitle: tests.title,
         testType: tests.testType,
         questionText: testQuestions.questionText,
-        graderName: users.name,
+        graderName: users.userName,
       })
       .from(testSubmissions)
       .leftJoin(tests, eq(testSubmissions.testId, tests.id))

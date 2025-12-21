@@ -19,18 +19,45 @@ export default function LearningHistoryClient({
   speakingSubmissions,
   testSubmissions = [],
 }: LearningHistoryClientProps) {
-  const [filter, setFilter] = useState<"ALL" | "GRADED" | "PENDING">("ALL");
+  const [statusFilter, setStatusFilter] = useState<"ALL" | "GRADED" | "PENDING">("ALL");
+  const [typeFilter, setTypeFilter] = useState<"ALL" | "EXERCISE" | "TEST">("ALL");
 
   const filterSubmissions = (submissions: any[]) => {
-    if (filter === "ALL") return submissions;
-    if (filter === "GRADED") return submissions.filter(s => s.status === "GRADED");
-    if (filter === "PENDING") return submissions.filter(s => s.status === "PENDING");
-    return submissions;
+    let filtered = submissions;
+
+    // Filter by status
+    if (statusFilter === "GRADED") {
+      filtered = filtered.filter(s => s.status === "GRADED");
+    } else if (statusFilter === "PENDING") {
+      filtered = filtered.filter(s => s.status === "PENDING");
+    }
+
+    return filtered;
   };
 
-  const filteredWriting = filterSubmissions(writingSubmissions);
-  const filteredSpeaking = filterSubmissions(speakingSubmissions);
-  const filteredTestSubmissions = filterSubmissions(testSubmissions);
+  // Combine exercise and test submissions
+  const allWritingSubmissions = [
+    ...writingSubmissions.map(s => ({ ...s, type: "EXERCISE" })),
+    ...testSubmissions.filter(s => s.skillType === "WRITING").map(s => ({ ...s, type: "TEST" }))
+  ];
+
+  const allSpeakingSubmissions = [
+    ...speakingSubmissions.map(s => ({ ...s, type: "EXERCISE" })),
+    ...testSubmissions.filter(s => s.skillType === "SPEAKING").map(s => ({ ...s, type: "TEST" }))
+  ];
+
+  // Apply filters
+  const filteredWriting = typeFilter === "TEST"
+    ? filterSubmissions(allWritingSubmissions.filter(s => s.type === "TEST"))
+    : typeFilter === "EXERCISE"
+    ? filterSubmissions(allWritingSubmissions.filter(s => s.type === "EXERCISE"))
+    : filterSubmissions(allWritingSubmissions);
+
+  const filteredSpeaking = typeFilter === "TEST"
+    ? filterSubmissions(allSpeakingSubmissions.filter(s => s.type === "TEST"))
+    : typeFilter === "EXERCISE"
+    ? filterSubmissions(allSpeakingSubmissions.filter(s => s.type === "EXERCISE"))
+    : filterSubmissions(allSpeakingSubmissions);
 
   const getStatusBadge = (status: string) => {
     if (status === "GRADED") {
@@ -58,37 +85,71 @@ export default function LearningHistoryClient({
           <p className="text-gray-600">Xem lại các bài tập Writing và Speaking đã nộp</p>
         </div>
 
-        {/* Filter */}
-        <div className="mb-6 flex gap-2">
-          <Button
-            variant={filter === "ALL" ? "default" : "outline"}
-            onClick={() => setFilter("ALL")}
-            size="sm"
-          >
-            <Filter className="h-4 w-4 mr-2" />
-            Tất cả
-          </Button>
-          <Button
-            variant={filter === "GRADED" ? "default" : "outline"}
-            onClick={() => setFilter("GRADED")}
-            size="sm"
-          >
-            <CheckCircle2 className="h-4 w-4 mr-2" />
-            Đã chấm
-          </Button>
-          <Button
-            variant={filter === "PENDING" ? "default" : "outline"}
-            onClick={() => setFilter("PENDING")}
-            size="sm"
-          >
-            <Clock className="h-4 w-4 mr-2" />
-            Chờ chấm
-          </Button>
+        {/* Filters */}
+        <div className="mb-6 space-y-4">
+          {/* Type Filter */}
+          <div>
+            <p className="text-sm font-medium text-gray-700 mb-2">Loại bài:</p>
+            <div className="flex gap-2">
+              <Button
+                variant={typeFilter === "ALL" ? "default" : "outline"}
+                onClick={() => setTypeFilter("ALL")}
+                size="sm"
+              >
+                Tất cả
+              </Button>
+              <Button
+                variant={typeFilter === "EXERCISE" ? "default" : "outline"}
+                onClick={() => setTypeFilter("EXERCISE")}
+                size="sm"
+              >
+                Bài tập
+              </Button>
+              <Button
+                variant={typeFilter === "TEST" ? "default" : "outline"}
+                onClick={() => setTypeFilter("TEST")}
+                size="sm"
+              >
+                Bài test
+              </Button>
+            </div>
+          </div>
+
+          {/* Status Filter */}
+          <div>
+            <p className="text-sm font-medium text-gray-700 mb-2">Trạng thái:</p>
+            <div className="flex gap-2">
+              <Button
+                variant={statusFilter === "ALL" ? "default" : "outline"}
+                onClick={() => setStatusFilter("ALL")}
+                size="sm"
+              >
+                <Filter className="h-4 w-4 mr-2" />
+                Tất cả
+              </Button>
+              <Button
+                variant={statusFilter === "GRADED" ? "default" : "outline"}
+                onClick={() => setStatusFilter("GRADED")}
+                size="sm"
+              >
+                <CheckCircle2 className="h-4 w-4 mr-2" />
+                Đã chấm
+              </Button>
+              <Button
+                variant={statusFilter === "PENDING" ? "default" : "outline"}
+                onClick={() => setStatusFilter("PENDING")}
+                size="sm"
+              >
+                <Clock className="h-4 w-4 mr-2" />
+                Chờ chấm
+              </Button>
+            </div>
+          </div>
         </div>
 
         {/* Tabs */}
         <Tabs defaultValue="writing" className="w-full">
-          <TabsList className="grid w-full max-w-2xl grid-cols-3">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
             <TabsTrigger value="writing">
               <FileText className="h-4 w-4 mr-2" />
               Writing ({filteredWriting.length})
@@ -96,10 +157,6 @@ export default function LearningHistoryClient({
             <TabsTrigger value="speaking">
               <Mic className="h-4 w-4 mr-2" />
               Speaking ({filteredSpeaking.length})
-            </TabsTrigger>
-            <TabsTrigger value="tests">
-              <CheckCircle2 className="h-4 w-4 mr-2" />
-              Tests ({filteredTestSubmissions.length})
             </TabsTrigger>
           </TabsList>
 
@@ -127,47 +184,60 @@ export default function LearningHistoryClient({
                 </div>
 
                 {/* Table Rows */}
-                {filteredWriting.map((submission) => (
-                  <Card key={submission.id} className="hover:shadow-md transition-shadow">
+                {filteredWriting.map((submission) => {
+                  const isTest = submission.type === "TEST";
+                  const title = isTest
+                    ? (submission.testTitle || "Test Question")
+                    : (submission.challenge?.question || "No question");
+                  const subtitle = isTest
+                    ? (submission.questionText || "Writing Test")
+                    : "Writing Exercise";
+
+                  return (
+                  <Card key={`${submission.type}-${submission.id}`} className="hover:shadow-md transition-shadow">
                     <CardContent className="p-4">
                       <div className="grid md:grid-cols-12 gap-4 items-center">
                         {/* Title */}
                         <div className="col-span-12 md:col-span-4">
                           <div className="flex items-start gap-3">
-                            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                              <FileText className="h-5 w-5 text-blue-600" />
+                            <div className={`w-10 h-10 ${isTest ? "bg-green-100" : "bg-blue-100"} rounded-lg flex items-center justify-center flex-shrink-0`}>
+                              <FileText className={`h-5 w-5 ${isTest ? "text-green-600" : "text-blue-600"}`} />
                             </div>
                             <div className="flex-1 min-w-0">
                               <h3 className="font-semibold text-gray-900 truncate">
-                                {submission.challenge.question}
+                                {title}
                               </h3>
                               <p className="text-sm text-gray-500 truncate">
-                                {submission.challenge.lesson.title}
+                                {subtitle}
                               </p>
                             </div>
                           </div>
                         </div>
 
-                        {/* Course */}
+                        {/* Course/Type */}
                         <div className="col-span-6 md:col-span-2">
-                          <p className="text-sm text-gray-600 truncate">
-                            {submission.challenge.lesson.unit.course.title}
-                          </p>
+                          <Badge variant={isTest ? "default" : "secondary"}>
+                            {isTest ? "Bài test" : "Bài tập"}
+                          </Badge>
                         </div>
 
                         {/* Date */}
                         <div className="col-span-6 md:col-span-2">
                           <div className="flex items-center gap-1 text-sm text-gray-600">
                             <Clock className="h-4 w-4 md:hidden" />
-                            <span>{new Date(submission.submittedAt).toLocaleDateString("vi-VN")}</span>
+                            <span>{new Date(isTest ? submission.createdAt : submission.submittedAt).toLocaleDateString("vi-VN")}</span>
                           </div>
                         </div>
 
-                        {/* Word Count */}
+                        {/* Word Count (only for exercises) */}
                         <div className="col-span-4 md:col-span-1 text-center">
-                          <span className="text-sm font-medium text-gray-900">
-                            {submission.wordCount}
-                          </span>
+                          {!isTest && submission.wordCount ? (
+                            <span className="text-sm font-medium text-gray-900">
+                              {submission.wordCount}
+                            </span>
+                          ) : (
+                            <span className="text-sm text-gray-400">-</span>
+                          )}
                         </div>
 
                         {/* Score */}
@@ -188,7 +258,7 @@ export default function LearningHistoryClient({
 
                         {/* Action */}
                         <div className="col-span-12 md:col-span-1 text-right">
-                          <Link href={`/student/learning-history/writing/${submission.id}`}>
+                          <Link href={isTest ? `/student/learning-history/test/${submission.id}` : `/student/learning-history/writing/${submission.id}`}>
                             <Button size="sm" variant="outline" className="w-full md:w-auto">
                               <Eye className="h-4 w-4 md:mr-0" />
                               <span className="md:hidden ml-2">Xem chi tiết</span>
@@ -198,7 +268,8 @@ export default function LearningHistoryClient({
                       </div>
                     </CardContent>
                   </Card>
-                ))}
+                  );
+                })}
               </div>
             )}
           </TabsContent>
@@ -227,47 +298,60 @@ export default function LearningHistoryClient({
                 </div>
 
                 {/* Table Rows */}
-                {filteredSpeaking.map((submission) => (
-                  <Card key={submission.id} className="hover:shadow-md transition-shadow">
+                {filteredSpeaking.map((submission) => {
+                  const isTest = submission.type === "TEST";
+                  const title = isTest
+                    ? (submission.testTitle || "Test Question")
+                    : (submission.challenge?.question || "No question");
+                  const subtitle = isTest
+                    ? (submission.questionText || "Speaking Test")
+                    : "Speaking Exercise";
+
+                  return (
+                  <Card key={`${submission.type}-${submission.id}`} className="hover:shadow-md transition-shadow">
                     <CardContent className="p-4">
                       <div className="grid md:grid-cols-12 gap-4 items-center">
                         {/* Title */}
                         <div className="col-span-12 md:col-span-4">
                           <div className="flex items-start gap-3">
-                            <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                              <Mic className="h-5 w-5 text-red-600" />
+                            <div className={`w-10 h-10 ${isTest ? "bg-blue-100" : "bg-red-100"} rounded-lg flex items-center justify-center flex-shrink-0`}>
+                              <Mic className={`h-5 w-5 ${isTest ? "text-blue-600" : "text-red-600"}`} />
                             </div>
                             <div className="flex-1 min-w-0">
                               <h3 className="font-semibold text-gray-900 truncate">
-                                {submission.challenge.question}
+                                {title}
                               </h3>
                               <p className="text-sm text-gray-500 truncate">
-                                {submission.challenge.lesson.title}
+                                {subtitle}
                               </p>
                             </div>
                           </div>
                         </div>
 
-                        {/* Course */}
+                        {/* Course/Type */}
                         <div className="col-span-6 md:col-span-2">
-                          <p className="text-sm text-gray-600 truncate">
-                            {submission.challenge.lesson.unit.course.title}
-                          </p>
+                          <Badge variant={isTest ? "default" : "secondary"}>
+                            {isTest ? "Bài test" : "Bài tập"}
+                          </Badge>
                         </div>
 
                         {/* Date */}
                         <div className="col-span-6 md:col-span-2">
                           <div className="flex items-center gap-1 text-sm text-gray-600">
                             <Clock className="h-4 w-4 md:hidden" />
-                            <span>{new Date(submission.submittedAt).toLocaleDateString("vi-VN")}</span>
+                            <span>{new Date(isTest ? submission.createdAt : submission.submittedAt).toLocaleDateString("vi-VN")}</span>
                           </div>
                         </div>
 
-                        {/* Duration */}
+                        {/* Duration (only for exercises) */}
                         <div className="col-span-4 md:col-span-1 text-center">
-                          <span className="text-sm font-medium text-gray-900">
-                            {Math.floor(submission.duration / 60)}:{(submission.duration % 60).toString().padStart(2, '0')}
-                          </span>
+                          {!isTest && submission.duration ? (
+                            <span className="text-sm font-medium text-gray-900">
+                              {Math.floor(submission.duration / 60)}:{(submission.duration % 60).toString().padStart(2, '0')}
+                            </span>
+                          ) : (
+                            <span className="text-sm text-gray-400">-</span>
+                          )}
                         </div>
 
                         {/* Score */}
@@ -288,7 +372,7 @@ export default function LearningHistoryClient({
 
                         {/* Action */}
                         <div className="col-span-12 md:col-span-1 text-right">
-                          <Link href={`/student/learning-history/speaking/${submission.id}`}>
+                          <Link href={isTest ? `/student/learning-history/test/${submission.id}` : `/student/learning-history/speaking/${submission.id}`}>
                             <Button size="sm" variant="outline" className="w-full md:w-auto">
                               <Eye className="h-4 w-4 md:mr-0" />
                               <span className="md:hidden ml-2">Xem chi tiết</span>
@@ -298,100 +382,8 @@ export default function LearningHistoryClient({
                       </div>
                     </CardContent>
                   </Card>
-                ))}
-              </div>
-            )}
-          </TabsContent>
-
-          {/* Test Submissions Tab */}
-          <TabsContent value="tests">
-            {filteredTestSubmissions.length === 0 ? (
-              <Card>
-                <CardContent className="py-12 text-center">
-                  <p className="text-gray-500">Chưa có bài test nào được chấm</p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="space-y-4">
-                {filteredTestSubmissions.map((submission: any) => (
-                  <Card key={submission.id} className="hover:shadow-md transition-shadow">
-                    <CardContent className="p-6">
-                      <div className="grid grid-cols-12 gap-4 items-center">
-                        {/* Type Icon */}
-                        <div className="col-span-12 md:col-span-1 flex justify-center">
-                          {submission.skillType === "SPEAKING" ? (
-                            <div className="p-3 bg-blue-100 rounded-full">
-                              <Mic className="h-6 w-6 text-blue-600" />
-                            </div>
-                          ) : (
-                            <div className="p-3 bg-green-100 rounded-full">
-                              <FileText className="h-6 w-6 text-green-600" />
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Test Info */}
-                        <div className="col-span-12 md:col-span-6">
-                          <h3 className="font-semibold text-gray-900 mb-1">
-                            {submission.testTitle || "Untitled Test"}
-                          </h3>
-                          <p className="text-sm text-gray-600 mb-2">
-                            {submission.questionText || "No question text"}
-                          </p>
-                          <div className="flex items-center gap-2 text-xs text-gray-500">
-                            <Badge variant={submission.skillType === "SPEAKING" ? "default" : "secondary"}>
-                              {submission.skillType}
-                            </Badge>
-                            {submission.gradedAt && (
-                              <span>Chấm: {formatDate(submission.gradedAt)}</span>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Score */}
-                        <div className="col-span-6 md:col-span-2 text-center">
-                          {submission.status === "GRADED" && submission.score !== null ? (
-                            <div>
-                              <div className="text-2xl font-bold text-blue-600">
-                                {submission.score}/{submission.maxScore}
-                              </div>
-                              <p className="text-xs text-gray-500">Điểm</p>
-                            </div>
-                          ) : (
-                            <span className="text-sm text-gray-400">Chờ chấm</span>
-                          )}
-                        </div>
-
-                        {/* Grader */}
-                        <div className="col-span-6 md:col-span-2 text-center">
-                          {submission.graderName ? (
-                            <div>
-                              <p className="text-sm font-medium text-gray-700">
-                                {submission.graderName}
-                              </p>
-                              <p className="text-xs text-gray-500">Giáo viên</p>
-                            </div>
-                          ) : (
-                            <span className="text-sm text-gray-400">-</span>
-                          )}
-                        </div>
-
-                        {/* Status */}
-                        <div className="col-span-12 md:col-span-1 text-center">
-                          {getStatusBadge(submission.status)}
-                        </div>
-                      </div>
-
-                      {/* Feedback */}
-                      {submission.feedback && submission.status === "GRADED" && (
-                        <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                          <p className="text-sm font-semibold text-blue-900 mb-1">Nhận xét:</p>
-                          <p className="text-sm text-gray-700">{submission.feedback}</p>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))}
+                  );
+                })}
               </div>
             )}
           </TabsContent>

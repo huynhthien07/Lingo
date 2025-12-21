@@ -36,6 +36,14 @@ interface Submission {
   feedback: string | null;
   status: string;
   questionText: string | null;
+  // Criteria scores
+  fluencyCoherenceScore: number | null;
+  pronunciationScore: number | null;
+  taskAchievementScore: number | null;
+  coherenceCohesionScore: number | null;
+  lexicalResourceScore: number | null;
+  grammaticalRangeScore: number | null;
+  overallBandScore: number | null;
 }
 
 interface AttemptData {
@@ -56,8 +64,6 @@ export function TestGradingClient({ attemptId }: TestGradingClientProps) {
   const [attemptData, setAttemptData] = useState<AttemptData | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [scores, setScores] = useState<Record<number, string>>({});
-  const [feedbacks, setFeedbacks] = useState<Record<number, string>>({});
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -71,20 +77,6 @@ export function TestGradingClient({ attemptId }: TestGradingClientProps) {
       if (!response.ok) throw new Error("Failed to fetch attempt data");
       const data = await response.json();
       setAttemptData(data);
-
-      // Initialize scores and feedbacks from existing data
-      const initialScores: Record<number, string> = {};
-      const initialFeedbacks: Record<number, string> = {};
-      data.submissions.forEach((sub: Submission) => {
-        if (sub.score !== null) {
-          initialScores[sub.id] = sub.score.toString();
-        }
-        if (sub.feedback) {
-          initialFeedbacks[sub.id] = sub.feedback;
-        }
-      });
-      setScores(initialScores);
-      setFeedbacks(initialFeedbacks);
     } catch (error) {
       console.error("Error fetching attempt data:", error);
       toast.error("Failed to load grading data");
@@ -93,51 +85,8 @@ export function TestGradingClient({ attemptId }: TestGradingClientProps) {
     }
   };
 
-  const handleScoreChange = (submissionId: number, value: string) => {
-    setScores((prev) => ({ ...prev, [submissionId]: value }));
-  };
-
-  const handleFeedbackChange = (submissionId: number, value: string) => {
-    setFeedbacks((prev) => ({ ...prev, [submissionId]: value }));
-  };
-
-  const handleGradeSubmission = async (submissionId: number) => {
-    const scoreValue = scores[submissionId];
-    const feedbackValue = feedbacks[submissionId] || "";
-
-    if (!scoreValue) {
-      toast.error("Please enter a score");
-      return;
-    }
-
-    const scoreNum = parseFloat(scoreValue);
-    const submission = attemptData?.submissions.find((s) => s.id === submissionId);
-    
-    if (!submission || isNaN(scoreNum) || scoreNum < 0 || scoreNum > submission.maxScore) {
-      toast.error(`Score must be between 0 and ${submission?.maxScore || 9}`);
-      return;
-    }
-
-    try {
-      setSubmitting(true);
-      const response = await fetch(`/api/teacher/test-submissions/${submissionId}/grade`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ score: scoreNum, feedback: feedbackValue }),
-      });
-
-      if (!response.ok) throw new Error("Failed to grade submission");
-
-      toast.success("Submission graded successfully");
-      
-      // Refresh data
-      await fetchAttemptData();
-    } catch (error) {
-      console.error("Error grading submission:", error);
-      toast.error("Failed to grade submission");
-    } finally {
-      setSubmitting(false);
-    }
+  const handleViewSubmission = (submissionId: number) => {
+    router.push(`/teacher/test-submissions/${attemptId}/submission/${submissionId}`);
   };
 
   if (loading) {
@@ -261,43 +210,84 @@ export function TestGradingClient({ attemptId }: TestGradingClientProps) {
                   )}
                 </div>
 
-                {/* Grading Section */}
+                {/* Grading Status/Preview */}
                 <div className="border-t pt-6 space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="score">
-                        Score (0-{currentSubmission.maxScore})
-                      </Label>
-                      <Input
-                        id="score"
-                        type="number"
-                        min="0"
-                        max={currentSubmission.maxScore}
-                        step="0.5"
-                        value={scores[currentSubmission.id] || ""}
-                        onChange={(e) => handleScoreChange(currentSubmission.id, e.target.value)}
-                        placeholder="Enter score"
-                      />
-                    </div>
-                  </div>
+                  {currentSubmission.status === "GRADED" && currentSubmission.overallBandScore ? (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="font-semibold text-green-900">Graded</h4>
+                        <Badge className="bg-green-600">
+                          Band {currentSubmission.overallBandScore.toFixed(1)}
+                        </Badge>
+                      </div>
 
-                  <div>
-                    <Label htmlFor="feedback">Feedback</Label>
-                    <Textarea
-                      id="feedback"
-                      rows={4}
-                      value={feedbacks[currentSubmission.id] || ""}
-                      onChange={(e) => handleFeedbackChange(currentSubmission.id, e.target.value)}
-                      placeholder="Enter feedback for the student..."
-                    />
-                  </div>
+                      {/* Criteria Scores Preview */}
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        {currentSubmission.skillType === "SPEAKING" ? (
+                          <>
+                            {currentSubmission.fluencyCoherenceScore && (
+                              <div className="flex justify-between">
+                                <span className="text-gray-700">Fluency & Coherence:</span>
+                                <span className="font-semibold">{currentSubmission.fluencyCoherenceScore}</span>
+                              </div>
+                            )}
+                            {currentSubmission.pronunciationScore && (
+                              <div className="flex justify-between">
+                                <span className="text-gray-700">Pronunciation:</span>
+                                <span className="font-semibold">{currentSubmission.pronunciationScore}</span>
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            {currentSubmission.taskAchievementScore && (
+                              <div className="flex justify-between">
+                                <span className="text-gray-700">Task Achievement:</span>
+                                <span className="font-semibold">{currentSubmission.taskAchievementScore}</span>
+                              </div>
+                            )}
+                            {currentSubmission.coherenceCohesionScore && (
+                              <div className="flex justify-between">
+                                <span className="text-gray-700">Coherence & Cohesion:</span>
+                                <span className="font-semibold">{currentSubmission.coherenceCohesionScore}</span>
+                              </div>
+                            )}
+                          </>
+                        )}
+                        {currentSubmission.lexicalResourceScore && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-700">Lexical Resource:</span>
+                            <span className="font-semibold">{currentSubmission.lexicalResourceScore}</span>
+                          </div>
+                        )}
+                        {currentSubmission.grammaticalRangeScore && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-700">Grammar:</span>
+                            <span className="font-semibold">{currentSubmission.grammaticalRangeScore}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {currentSubmission.feedback && (
+                        <div className="mt-4 pt-4 border-t border-green-200">
+                          <p className="text-sm text-gray-700 font-medium mb-1">Feedback:</p>
+                          <p className="text-sm text-gray-600">{currentSubmission.feedback}</p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 text-center">
+                      <p className="text-orange-800 font-medium mb-2">Not graded yet</p>
+                      <p className="text-sm text-orange-600">Click "Grade Submission" to provide detailed feedback</p>
+                    </div>
+                  )}
 
                   <Button
-                    onClick={() => handleGradeSubmission(currentSubmission.id)}
-                    disabled={submitting || !scores[currentSubmission.id]}
+                    onClick={() => handleViewSubmission(currentSubmission.id)}
                     className="w-full"
+                    variant={currentSubmission.status === "GRADED" ? "outline" : "default"}
                   >
-                    {submitting ? "Saving..." : "Save Grade"}
+                    {currentSubmission.status === "GRADED" ? "View/Edit Grading" : "Grade Submission"}
                   </Button>
                 </div>
 
