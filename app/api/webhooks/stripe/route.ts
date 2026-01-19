@@ -1,7 +1,6 @@
 import db from "@/db/drizzle";
-import { userSubscription, courseEnrollments, coursePayments } from "@/db/schema";
+import { courseEnrollments, coursePayments } from "@/db/schema";
 import { stripe } from "@/lib/stripe";
-import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
@@ -11,6 +10,9 @@ export async function POST (req:Request){
     const body = await req.text();
     const signature = (await headers()).get("Stripe-Signature") as string;
 
+    console.log("🔔 Webhook received");
+    console.log("Signature:", signature ? "✅ Present" : "❌ Missing");
+
     let event: Stripe.Event;
 
     try {
@@ -19,82 +21,77 @@ export async function POST (req:Request){
             signature,
             process.env.STRIPE_WEBHOOK_SECRET!,
         );
+        console.log("✅ Webhook signature verified");
+        console.log("Event type:", event.type);
     } catch (error: any) {
+        console.error("❌ Webhook error:", error.message);
         return new NextResponse(`Webhook error: ${error.message}`,{
             status:400,
         });
     }
 
     const session = event.data.object as Stripe.Checkout.Session;
+    console.log("Session data:", {
+        id: session.id,
+        metadata: session.metadata,
+        amount_total: session.amount_total,
+        currency: session.currency,
+        payment_intent: session.payment_intent,
+    });
 
     if (event.type === "checkout.session.completed"){
+        console.log("🎯 Processing checkout.session.completed event");
+
         if (!session?.metadata?.userId){
+            console.error("❌ User ID is missing in metadata");
             return new NextResponse("User ID is required", {status: 400});
         }
 
-        // Check if this is a course payment or subscription
+        // Handle course payment
         if (session.metadata.courseId) {
-            // Course payment
             const courseId = parseInt(session.metadata.courseId);
             const userId = session.metadata.userId;
 
-            // Create enrollment
-            await db.insert(courseEnrollments).values({
-                userId,
-                courseId,
-                enrollmentType: "PAID",
-                status: "ACTIVE",
-                progress: 0,
-            });
+            console.log(`📝 Creating enrollment for user ${userId}, course ${courseId}`);
 
-            // Record payment
-            await db.insert(coursePayments).values({
-                userId,
-                courseId,
-                amount: session.amount_total || 0, // Already in cents
-                currency: session.currency || "usd",
-                status: "COMPLETED",
-                stripePaymentIntentId: session.payment_intent as string,
-                paidAt: new Date(),
-            });
+            try {
+                // Create enrollment
+                const enrollmentResult = await db.insert(courseEnrollments).values({
+                    userId,
+                    courseId,
+                    enrollmentType: "PAID",
+                    status: "ACTIVE",
+                    progress: 0,
+                });
+                console.log("✅ Enrollment created:", enrollmentResult);
 
-            console.log(`✅ Course enrollment created for user ${userId}, course ${courseId}`);
-        } else if (session.subscription) {
-            // Subscription payment (existing logic)
-            const subscription = (await stripe.subscriptions.retrieve(
-                session.subscription as string
-            ));
+                // Record payment
+                const paymentResult = await db.insert(coursePayments).values({
+                    userId,
+                    courseId,
+                    amount: session.amount_total || 0, // Already in cents
+                    currency: (session.currency || "usd").toUpperCase(),
+                    status: "COMPLETED",
+                    stripePaymentIntentId: session.payment_intent as string,
+                    paidAt: new Date(),
+                });
+                console.log("✅ Payment recorded:", paymentResult);
 
-            await db.insert(userSubscription).values({
-                userId: session.metadata.userId,
-                stripeSubscriptionId: subscription.id,
-                stripeCustomerId: subscription.customer as string,
-                stripePriceId: subscription.items.data[0].price.id,
-                stripeCurrentPeriodEnd: new Date(
-                    //subscription.current_period_end * 1000,
-                    'current_period_end' in subscription?
-                    (subscription as any).current_period_end*1000:
-                    Date.now() + 30*24*60*60*10000
-                )
-            });
+                console.log(`✅ Course enrollment created for user ${userId}, course ${courseId}`);
+            } catch (dbError: any) {
+                console.error("❌ Database error:", dbError.message);
+                console.error("Error details:", dbError);
+                return new NextResponse(`Database error: ${dbError.message}`, {status: 500});
+            }
+        } else {
+            console.log(`⚠️ Checkout session completed without courseId metadata`);
         }
+    } else {
+        console.log(`⏭️ Ignoring event type: ${event.type}`);
     }
 
-    if (event.type === "invoice.payment_succeeded"){
-        const subscription = await stripe.subscriptions.retrieve(
-            session.subscription as string
-        );
-
-        await db.update(userSubscription).set({
-            stripePriceId: subscription.items.data[0].price.id,
-            stripeCurrentPeriodEnd: new Date(
-                //subscription.current_period_end *1000,
-                'current_period_end' in subscription?
-                (subscription as any).current_period_end*1000:
-                Date.now() + 30*24*60*60*10000
-            ),
-        }).where(eq(userSubscription.stripeSubscriptionId, subscription.id))
-    }
+    // Note: Subscription renewal logic removed as we now use one-time course payments
+    // If you need to handle recurring subscriptions in the future, implement here
 
     return new NextResponse(null, {status: 200});
 }

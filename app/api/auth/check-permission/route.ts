@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { hasPermission } from "@/lib/services/permission.service";
+import { Permission } from "@/lib/types/permission.types";
 
 /**
  * GET /api/auth/check-permission
@@ -25,7 +26,7 @@ export async function GET(req: Request) {
       );
     }
 
-    const allowed = await hasPermission(userId, permission);
+    const allowed = await hasPermission(userId, permission as Permission);
 
     return NextResponse.json({ hasPermission: allowed });
   } catch (error) {

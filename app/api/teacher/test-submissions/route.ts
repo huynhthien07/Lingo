@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
       conditions.push(eq(testSubmissions.skillType, skillType as any));
     }
 
-    let baseSubmissions = db
+    const rawSubmissions = await db
       .select({
         id: testSubmissions.id,
         attemptId: testSubmissions.attemptId,
@@ -74,13 +74,8 @@ export async function GET(request: NextRequest) {
         createdAt: testSubmissions.createdAt,
       })
       .from(testSubmissions)
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
       .orderBy(desc(testSubmissions.createdAt));
-
-    if (conditions.length > 0) {
-      baseSubmissions = baseSubmissions.where(and(...conditions)) as any;
-    }
-
-    const rawSubmissions = await baseSubmissions;
 
     // Enrich submissions with related data
     const submissions = await Promise.all(

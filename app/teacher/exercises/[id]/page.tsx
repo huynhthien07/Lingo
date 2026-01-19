@@ -23,7 +23,29 @@ export default async function ExerciseDetailPage({ params }: ExerciseDetailPageP
 
   let exercise = null;
   try {
-    exercise = await getTeacherExerciseById(exerciseId, userId);
+    const fetchedExercise = await getTeacherExerciseById(exerciseId, userId);
+    if (fetchedExercise) {
+      exercise = {
+        ...fetchedExercise,
+        difficulty: fetchedExercise.difficulty || "MEDIUM",
+        questions: fetchedExercise.questions?.map((q: any) => ({
+          id: q.id,
+          text: q.text,
+          correctAnswer: q.correctAnswer,
+          explanation: q.explanation,
+          order: q.order,
+          options: q.options?.map((o: any) => ({
+            id: o.id,
+            questionId: o.questionId || q.id,
+            text: o.text,
+            correct: o.correct,
+            imageSrc: o.imageSrc,
+            audioSrc: o.audioSrc,
+            order: o.order,
+          })) || [],
+        })) || [],
+      };
+    }
   } catch (error) {
     console.error("Error fetching exercise:", error);
   }

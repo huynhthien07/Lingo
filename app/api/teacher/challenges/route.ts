@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import db from "@/db/drizzle";
-import { challenges, lessons, courses, questions } from "@/db/schema";
+import { challenges, lessons, units, courses, questions } from "@/db/schema";
 import { eq, sql, ilike, and } from "drizzle-orm";
 
 export async function GET(request: NextRequest) {
@@ -75,7 +75,8 @@ export async function GET(request: NextRequest) {
       })
       .from(challenges)
       .leftJoin(lessons, eq(challenges.lessonId, lessons.id))
-      .leftJoin(courses, eq(lessons.courseId, courses.id))
+      .leftJoin(units, eq(lessons.unitId, units.id))
+      .leftJoin(courses, eq(units.courseId, courses.id))
       .where(conditions.length > 0 ? and(...conditions) : undefined)
       .limit(limit)
       .orderBy(challenges.id);

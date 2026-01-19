@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
     if (search) {
       conditions.push(
         or(
-          like(users.name, `%${search}%`),
+          like(users.userName, `%${search}%`),
           like(users.email, `%${search}%`),
           like(tests.title, `%${search}%`)
         )
@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
         gradedAt: testSubmissions.gradedAt,
         createdAt: testSubmissions.createdAt,
         testTitle: tests.title,
-        testType: tests.type,
+        testType: tests.testType,
         questionText: testQuestions.questionText,
         studentName: users.userName,
         studentEmail: users.email,

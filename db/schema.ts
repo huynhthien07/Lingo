@@ -12,7 +12,7 @@
 // ============================================================================
 
 import { relations } from "drizzle-orm";
-import { boolean, integer, pgEnum, pgTable, real, serial, text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, integer, jsonb, pgEnum, pgTable, real, serial, text, timestamp } from "drizzle-orm/pg-core";
 
 // ============================================================================
 // ENUMS - Define all enumerated types for type safety
@@ -45,6 +45,17 @@ export const skillTypeEnum = pgEnum("skill_type", [
     "SPEAKING",
     "VOCABULARY",
     "GRAMMAR"
+]);
+
+// Question types - Core input types for questions (NEW)
+// Reference: Universal question input patterns
+export const questionTypeEnum = pgEnum("question_type", [
+    "SINGLE_CHOICE",      // Radio button - select 1 answer
+    "MULTIPLE_CHOICE",    // Checkbox - select multiple answers
+    "TEXT_INPUT",         // Textbox - fill in the blank
+    "MATCHING",           // Dropdown/Drag - match pairs
+    "LABELING",           // Drag/Click - label diagram/map
+    "ORDERING"            // Drag - arrange in correct order
 ]);
 
 // Challenge types mapped to IELTS question formats
@@ -208,6 +219,11 @@ export const courses = pgTable("courses", {
     price: integer("price").notNull().default(0), // Price in cents (e.g., 2000 = $20.00)
     currency: text("currency").notNull().default("USD"),
     isFree: boolean("is_free").notNull().default(false),
+    // Course Recommendation fields
+    bandFrom: real("band_from"), // Minimum band score required (e.g., 5.0)
+    bandTo: real("band_to"), // Target band score after completion (e.g., 6.0)
+    enrollmentCount: integer("enrollment_count").notNull().default(0), // For popularity ranking
+    courseGoal: text("course_goal"), // "IELTS" or "GENERAL_ENGLISH"
     createdBy: text("created_by").notNull(), // Clerk userId of the teacher who created this course
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow(),
@@ -258,9 +274,11 @@ export const questions = pgTable("questions", {
     id: serial("id").primaryKey(),
     challengeId: integer("challenge_id").references(() => challenges.id, { onDelete: "cascade" }).notNull(),
     text: text("text").notNull(),
+    questionType: questionTypeEnum("question_type"), // ✅ NEW: Type of question input (SINGLE_CHOICE, MULTIPLE_CHOICE, TEXT_INPUT, etc.)
     imageSrc: text("image_src"), // Image for question (e.g., diagram, chart)
     correctAnswer: text("correct_answer"), // Correct answer for this specific question (e.g., for fill-in-blank, verb conjugation)
     explanation: text("explanation"), // Explanation for this specific question's answer
+    metadata: jsonb("metadata"), // ✅ NEW: Additional data for complex question types (MATCHING, LABELING, ORDERING)
     order: integer("order").notNull(),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
@@ -276,6 +294,70 @@ export const challengeOptions = pgTable("challenge_options", {
     imageSrc: text("image_src"),
     audioSrc: text("audio_src"),
     order: integer("order").notNull(),
+});
+
+// ============================================================================
+// SHARED POOL TABLES - Reusable labels/items for MATCHING/LABELING/ORDERING
+// ============================================================================
+// Reference: docs/shared-pool-design.md
+
+// 3.9.1 Question labels - Shared labels for MATCHING and LABELING questions
+export const questionLabels = pgTable("question_labels", {
+    id: serial("id").primaryKey(),
+    text: text("text").notNull(),
+    imageSrc: text("image_src"),
+    audioSrc: text("audio_src"),
+    challengeId: integer("challenge_id").references(() => challenges.id, { onDelete: "cascade" }), // For exercises - scope to challenge
+    lessonId: integer("lesson_id").references(() => lessons.id, { onDelete: "cascade" }), // For exercises - DEPRECATED, use challengeId
+    testId: integer("test_id").references(() => tests.id, { onDelete: "cascade" }), // For tests
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// 3.9.2 Question items - Shared items for MATCHING and ORDERING questions
+export const questionItems = pgTable("question_items", {
+    id: serial("id").primaryKey(),
+    text: text("text").notNull(),
+    imageSrc: text("image_src"),
+    audioSrc: text("audio_src"),
+    challengeId: integer("challenge_id").references(() => challenges.id, { onDelete: "cascade" }), // For exercises - scope to challenge
+    lessonId: integer("lesson_id").references(() => lessons.id, { onDelete: "cascade" }), // For exercises - DEPRECATED, use challengeId
+    testId: integer("test_id").references(() => tests.id, { onDelete: "cascade" }), // For tests
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// 3.9.3 Question targets - Shared targets for LABELING questions (diagram parts)
+export const questionTargets = pgTable("question_targets", {
+    id: serial("id").primaryKey(),
+    imageSrc: text("image_src").notNull(),
+    x: real("x").notNull(), // X coordinate (0-100%)
+    y: real("y").notNull(), // Y coordinate (0-100%)
+    lessonId: integer("lesson_id").references(() => lessons.id, { onDelete: "cascade" }), // For exercises
+    testId: integer("test_id").references(() => tests.id, { onDelete: "cascade" }), // For tests
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// 3.9.4 Question-Label mappings - Many-to-many relationship
+export const questionLabelMappings = pgTable("question_label_mappings", {
+    id: serial("id").primaryKey(),
+    questionId: integer("question_id").references(() => questions.id, { onDelete: "cascade" }).notNull(),
+    labelId: integer("label_id").references(() => questionLabels.id, { onDelete: "cascade" }).notNull(),
+});
+
+// 3.9.5 Question-Item mappings - Many-to-many relationship
+export const questionItemMappings = pgTable("question_item_mappings", {
+    id: serial("id").primaryKey(),
+    questionId: integer("question_id").references(() => questions.id, { onDelete: "cascade" }).notNull(),
+    itemId: integer("item_id").references(() => questionItems.id, { onDelete: "cascade" }).notNull(),
+});
+
+// 3.9.6 Question-Target mappings - Many-to-many relationship
+export const questionTargetMappings = pgTable("question_target_mappings", {
+    id: serial("id").primaryKey(),
+    questionId: integer("question_id").references(() => questions.id, { onDelete: "cascade" }).notNull(),
+    targetId: integer("target_id").references(() => questionTargets.id, { onDelete: "cascade" }).notNull(),
 });
 
 // 3.10 Challenge metadata table - Additional data for special challenge types
@@ -382,6 +464,7 @@ export const tests = pgTable("tests", {
     testType: testTypeEnum("test_type").notNull().default("PRACTICE"),
     examType: examTypeEnum("exam_type").notNull().default("IELTS"),
     duration: integer("duration").notNull().default(30), // Duration in minutes
+    isAdmission: boolean("is_admission").notNull().default(false), // For course recommendation (admission tests on marketing page)
     createdAt: timestamp("created_at").defaultNow().notNull(),
     createdBy: text("created_by").references(() => users.userId, { onDelete: "set null" }),
 });
@@ -404,8 +487,12 @@ export const testQuestions = pgTable("test_questions", {
     id: serial("id").primaryKey(),
     sectionId: integer("section_id").references(() => testSections.id, { onDelete: "cascade" }).notNull(),
     questionText: text("question_text").notNull(),
+    questionType: questionTypeEnum("question_type"), // ✅ NEW: Type of question input
     imageSrc: text("image_src"), // Image for question (e.g., diagram, chart)
     audioSrc: text("audio_src"), // Audio for individual question (if different from section audio)
+    correctAnswer: text("correct_answer"), // ✅ NEW: Correct answer for TEXT_INPUT questions
+    explanation: text("explanation"), // ✅ NEW: Explanation for the correct answer
+    metadata: jsonb("metadata"), // ✅ NEW: Additional data for complex question types
     order: integer("order").notNull(),
     points: integer("points").notNull().default(1),
 });
@@ -422,12 +509,14 @@ export const testQuestionOptions = pgTable("test_question_options", {
 // 3.19 Test attempts table - Track student test attempts
 export const testAttempts = pgTable("test_attempts", {
     id: serial("id").primaryKey(),
-    userId: text("user_id").references(() => users.userId, { onDelete: "cascade" }).notNull(),
+    userId: text("user_id").references(() => users.userId, { onDelete: "set null" }), // Nullable for guest admission tests
     testId: integer("test_id").references(() => tests.id, { onDelete: "cascade" }).notNull(),
     status: testAttemptStatusEnum("status").notNull().default("IN_PROGRESS"),
     score: integer("score").default(0),
     totalPoints: integer("total_points"),
     bandScore: real("band_score"), // Overall IELTS band score
+    readingBandScore: real("reading_band_score"), // Reading band score (for admission tests)
+    listeningBandScore: real("listening_band_score"), // Listening band score (for admission tests)
     startedAt: timestamp("started_at").defaultNow().notNull(),
     completedAt: timestamp("completed_at"),
 });
@@ -437,8 +526,9 @@ export const testAnswers = pgTable("test_answers", {
     id: serial("id").primaryKey(),
     attemptId: integer("attempt_id").references(() => testAttempts.id, { onDelete: "cascade" }).notNull(),
     questionId: integer("question_id").references(() => testQuestions.id, { onDelete: "cascade" }).notNull(),
-    selectedOptionId: integer("selected_option_id").references(() => testQuestionOptions.id, { onDelete: "set null" }),
-    textAnswer: text("text_answer"), // For open-ended questions
+    selectedOptionId: integer("selected_option_id").references(() => testQuestionOptions.id, { onDelete: "set null" }), // ⚠️ DEPRECATED: Use answerData instead
+    textAnswer: text("text_answer"), // ⚠️ DEPRECATED: Use answerData instead
+    answerData: jsonb("answer_data"), // ✅ NEW: Stores all answer types (single choice, multiple choice, text, matching, labeling, ordering)
     isCorrect: boolean("is_correct"),
     pointsEarned: integer("points_earned").default(0),
     answeredAt: timestamp("answered_at").defaultNow().notNull(),
@@ -663,6 +753,103 @@ export const languagePacks = pgTable("language_packs", {
 });
 
 // ============================================================================
+// FLASHCARD SYSTEM
+// ============================================================================
+
+// 3.36 Flashcard Categories - Organize flashcards by topic/theme
+export const flashcardCategories = pgTable("flashcard_categories", {
+    id: serial("id").primaryKey(),
+    name: text("name").notNull(),
+    description: text("description"),
+    createdBy: text("created_by").notNull(), // Teacher/Admin who created this category
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// 3.37 Flashcards - Vocabulary flashcards
+export const flashcards = pgTable("flashcards", {
+    id: serial("id").primaryKey(),
+    categoryId: integer("category_id").references(() => flashcardCategories.id, { onDelete: "cascade" }).notNull(),
+    word: text("word").notNull(), // The vocabulary word
+    definition: text("definition").notNull(), // Definition of the word
+    pronunciation: text("pronunciation"), // Phonetic pronunciation (e.g., /həˈloʊ/)
+    example: text("example"), // Example sentence
+    synonyms: text("synonyms"), // Comma-separated synonyms
+    antonyms: text("antonyms"), // Comma-separated antonyms
+    partOfSpeech: text("part_of_speech"), // noun, verb, adjective, etc.
+    audioUrl: text("audio_url"), // URL to pronunciation audio (from API or uploaded)
+    imageUrl: text("image_url"), // Optional image to help remember the word
+    difficulty: text("difficulty"), // EASY, MEDIUM, HARD
+    source: text("source").notNull().default("MANUAL"), // MANUAL or API (from Free Dictionary API)
+    createdBy: text("created_by").notNull(), // Teacher/Admin who created this flashcard
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// 3.38 Flashcard Progress - Track student learning progress
+export const flashcardProgress = pgTable("flashcard_progress", {
+    id: serial("id").primaryKey(),
+    userId: text("user_id").notNull(), // Student's Clerk userId
+    flashcardId: integer("flashcard_id").references(() => flashcards.id, { onDelete: "cascade" }).notNull(),
+    status: text("status").notNull().default("NEW"), // NEW, LEARNING, MASTERED
+    correctCount: integer("correct_count").notNull().default(0), // Number of times answered correctly
+    incorrectCount: integer("incorrect_count").notNull().default(0), // Number of times answered incorrectly
+    lastReviewedAt: timestamp("last_reviewed_at"), // Last time this flashcard was reviewed
+    nextReviewAt: timestamp("next_review_at"), // When to review next (spaced repetition)
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// ============================================================================
+// FUTURE FEATURES - AI CHATBOT SYSTEM
+// ============================================================================
+
+// 3.39 Chatbot conversations - AI chatbot conversation sessions
+export const chatbotConversations = pgTable("chatbot_conversations", {
+    id: serial("id").primaryKey(),
+    userId: text("user_id").references(() => users.userId, { onDelete: "cascade" }).notNull(),
+    title: text("title").default("New chat"),
+    context: text("context"), // JSON context for conversation (e.g., current lesson, challenge)
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// 3.40 Chatbot messages - Messages in chatbot conversations
+export const chatbotMessages = pgTable("chatbot_messages", {
+    id: serial("id").primaryKey(),
+    conversationId: integer("conversation_id").references(() => chatbotConversations.id, { onDelete: "cascade" }).notNull(),
+    sender: senderEnum("sender").notNull(), // USER, AI, SYSTEM
+    content: text("content").notNull(),
+    isValidated: boolean("is_validated").default(true), // Output validation result
+    validationReason: text("validation_reason"), // Why message was rejected/modified
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// 3.41 Chatbot feedback - User feedback for chatbot responses (RLHF)
+export const chatbotFeedback = pgTable("chatbot_feedback", {
+    id: serial("id").primaryKey(),
+    messageId: integer("message_id").references(() => chatbotMessages.id, { onDelete: "cascade" }).notNull(),
+    userId: text("user_id").references(() => users.userId, { onDelete: "cascade" }).notNull(),
+    rating: integer("rating"), // 1-5 stars
+    feedbackText: text("feedback_text"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// ============================================================================
+// FUTURE FEATURES - COURSE RECOMMENDATION SYSTEM
+// ============================================================================
+
+// 3.44 Course recommendations - AI-generated course recommendations
+export const courseRecommendations = pgTable("course_recommendations", {
+    id: serial("id").primaryKey(),
+    userId: text("user_id").references(() => users.userId, { onDelete: "cascade" }).notNull(),
+    courseId: integer("course_id").references(() => courses.id, { onDelete: "cascade" }).notNull(),
+    score: real("score").notNull(), // Recommendation score 0-1
+    reason: text("reason"), // Why this course is recommended
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// ============================================================================
 // RELATIONS - Define relationships between tables
 // ============================================================================
 // Reference: Drizzle ORM Relations - https://orm.drizzle.team/docs/rqb
@@ -685,6 +872,10 @@ export const usersRelations = relations(users, ({ one, many }) => ({
     chatSessions: many(chatSessions),
     challengeProgress: many(challengeProgress),
     lessonProgress: many(lessonProgress),
+    // Future features relations
+    chatbotConversations: many(chatbotConversations),
+    chatbotFeedback: many(chatbotFeedback),
+    courseRecommendations: many(courseRecommendations),
 }));
 
 // User progress relations
@@ -707,6 +898,8 @@ export const coursesRelations = relations(courses, ({ many }) => ({
     teacherAssignments: many(teacherAssignments),
     vocabularyTopics: many(vocabularyTopics),
     leaderboards: many(leaderboards),
+    // Future features relations
+    courseRecommendations: many(courseRecommendations),
 }));
 
 // Units relations
@@ -726,6 +919,10 @@ export const lessonsRelations = relations(lessons, ({ one, many }) => ({
     }),
     challenges: many(challenges),
     lessonProgress: many(lessonProgress),
+    // Shared pool relations
+    questionLabels: many(questionLabels),
+    questionItems: many(questionItems),
+    questionTargets: many(questionTargets),
 }));
 
 // Challenges relations
@@ -749,6 +946,9 @@ export const questionsRelations = relations(questions, ({ one, many }) => ({
         references: [challenges.id],
     }),
     options: many(challengeOptions),
+    labelMappings: many(questionLabelMappings),
+    itemMappings: many(questionItemMappings),
+    targetMappings: many(questionTargetMappings),
 }));
 
 // Challenge options relations
@@ -760,6 +960,73 @@ export const challengeOptionsRelations = relations(challengeOptions, ({ one }) =
     question: one(questions, {
         fields: [challengeOptions.questionId],
         references: [questions.id],
+    }),
+}));
+
+// ============================================================================
+// SHARED POOL RELATIONS
+// ============================================================================
+
+// Question labels relations
+export const questionLabelsRelations = relations(questionLabels, ({ one, many }) => ({
+    lesson: one(lessons, {
+        fields: [questionLabels.lessonId],
+        references: [lessons.id],
+    }),
+    mappings: many(questionLabelMappings),
+}));
+
+// Question items relations
+export const questionItemsRelations = relations(questionItems, ({ one, many }) => ({
+    lesson: one(lessons, {
+        fields: [questionItems.lessonId],
+        references: [lessons.id],
+    }),
+    mappings: many(questionItemMappings),
+}));
+
+// Question targets relations
+export const questionTargetsRelations = relations(questionTargets, ({ one, many }) => ({
+    lesson: one(lessons, {
+        fields: [questionTargets.lessonId],
+        references: [lessons.id],
+    }),
+    mappings: many(questionTargetMappings),
+}));
+
+// Question-Label mappings relations
+export const questionLabelMappingsRelations = relations(questionLabelMappings, ({ one }) => ({
+    question: one(questions, {
+        fields: [questionLabelMappings.questionId],
+        references: [questions.id],
+    }),
+    label: one(questionLabels, {
+        fields: [questionLabelMappings.labelId],
+        references: [questionLabels.id],
+    }),
+}));
+
+// Question-Item mappings relations
+export const questionItemMappingsRelations = relations(questionItemMappings, ({ one }) => ({
+    question: one(questions, {
+        fields: [questionItemMappings.questionId],
+        references: [questions.id],
+    }),
+    item: one(questionItems, {
+        fields: [questionItemMappings.itemId],
+        references: [questionItems.id],
+    }),
+}));
+
+// Question-Target mappings relations
+export const questionTargetMappingsRelations = relations(questionTargetMappings, ({ one }) => ({
+    question: one(questions, {
+        fields: [questionTargetMappings.questionId],
+        references: [questions.id],
+    }),
+    target: one(questionTargets, {
+        fields: [questionTargetMappings.targetId],
+        references: [questionTargets.id],
     }),
 }));
 
@@ -1089,53 +1356,7 @@ export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
     }),
 }));
 
-// ============================================================================
-// 11. FLASHCARD SYSTEM
-// ============================================================================
 
-// 11.1 Flashcard Categories - Organize flashcards by topic/theme
-export const flashcardCategories = pgTable("flashcard_categories", {
-    id: serial("id").primaryKey(),
-    name: text("name").notNull(),
-    description: text("description"),
-    createdBy: text("created_by").notNull(), // Teacher/Admin who created this category
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").defaultNow(),
-});
-
-// 11.2 Flashcards - Vocabulary flashcards
-export const flashcards = pgTable("flashcards", {
-    id: serial("id").primaryKey(),
-    categoryId: integer("category_id").references(() => flashcardCategories.id, { onDelete: "cascade" }).notNull(),
-    word: text("word").notNull(), // The vocabulary word
-    definition: text("definition").notNull(), // Definition of the word
-    pronunciation: text("pronunciation"), // Phonetic pronunciation (e.g., /həˈloʊ/)
-    example: text("example"), // Example sentence
-    synonyms: text("synonyms"), // Comma-separated synonyms
-    antonyms: text("antonyms"), // Comma-separated antonyms
-    partOfSpeech: text("part_of_speech"), // noun, verb, adjective, etc.
-    audioUrl: text("audio_url"), // URL to pronunciation audio (from API or uploaded)
-    imageUrl: text("image_url"), // Optional image to help remember the word
-    difficulty: text("difficulty"), // EASY, MEDIUM, HARD
-    source: text("source").notNull().default("MANUAL"), // MANUAL or API (from Free Dictionary API)
-    createdBy: text("created_by").notNull(), // Teacher/Admin who created this flashcard
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").defaultNow(),
-});
-
-// 11.3 Flashcard Progress - Track student learning progress
-export const flashcardProgress = pgTable("flashcard_progress", {
-    id: serial("id").primaryKey(),
-    userId: text("user_id").notNull(), // Student's Clerk userId
-    flashcardId: integer("flashcard_id").references(() => flashcards.id, { onDelete: "cascade" }).notNull(),
-    status: text("status").notNull().default("NEW"), // NEW, LEARNING, MASTERED
-    correctCount: integer("correct_count").notNull().default(0), // Number of times answered correctly
-    incorrectCount: integer("incorrect_count").notNull().default(0), // Number of times answered incorrectly
-    lastReviewedAt: timestamp("last_reviewed_at"), // Last time this flashcard was reviewed
-    nextReviewAt: timestamp("next_review_at"), // When to review next (spaced repetition)
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").defaultNow(),
-});
 
 // Flashcard Categories Relations
 export const flashcardCategoriesRelations = relations(flashcardCategories, ({ many }) => ({
@@ -1162,3 +1383,50 @@ export const flashcardProgressRelations = relations(flashcardProgress, ({ one })
         references: [users.userId],
     }),
 }));
+
+
+// Chatbot conversations relations
+export const chatbotConversationsRelations = relations(chatbotConversations, ({ one, many }) => ({
+    user: one(users, {
+        fields: [chatbotConversations.userId],
+        references: [users.userId],
+    }),
+    messages: many(chatbotMessages),
+}));
+
+// Chatbot messages relations
+export const chatbotMessagesRelations = relations(chatbotMessages, ({ one, many }) => ({
+    conversation: one(chatbotConversations, {
+        fields: [chatbotMessages.conversationId],
+        references: [chatbotConversations.id],
+    }),
+    feedback: many(chatbotFeedback),
+}));
+
+// Chatbot feedback relations
+export const chatbotFeedbackRelations = relations(chatbotFeedback, ({ one }) => ({
+    message: one(chatbotMessages, {
+        fields: [chatbotFeedback.messageId],
+        references: [chatbotMessages.id],
+    }),
+    user: one(users, {
+        fields: [chatbotFeedback.userId],
+        references: [users.userId],
+    }),
+}));
+
+// NOTE: Removed paymentsRelations - use coursePaymentsRelations instead
+// NOTE: Removed subscriptionPlansRelations - subscriptionPlans table removed
+
+// Course recommendations relations
+export const courseRecommendationsRelations = relations(courseRecommendations, ({ one }) => ({
+    user: one(users, {
+        fields: [courseRecommendations.userId],
+        references: [users.userId],
+    }),
+    course: one(courses, {
+        fields: [courseRecommendations.courseId],
+        references: [courses.id],
+    }),
+}));
+

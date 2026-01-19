@@ -138,7 +138,7 @@ export const getTeacherStudentDetail = async (
     },
   });
 
-  if (!enrollment) {
+  if (!enrollment || !enrollment.course) {
     throw new Error("Student not found in this course");
   }
 

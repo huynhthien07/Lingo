@@ -61,11 +61,6 @@ const menuItems = [
     icon: FileCheck,
   },
   {
-    title: "Test Grading",
-    href: "/teacher/test-submissions",
-    icon: ClipboardCheck,
-  },
-  {
     title: "Flashcards",
     href: "/teacher/flashcards",
     icon: CreditCard,

@@ -154,6 +154,7 @@ export function ExerciseDetailView({ exerciseId, initialExercise }: ExerciseDeta
         <h3 className="text-xl font-semibold mb-4">Questions & Answers</h3>
         <ExerciseQuestionsManager
           exerciseId={exerciseId}
+          lessonId={exercise.lessonId}
           exerciseType={exercise.type}
           questions={exercise.questions || []}
           onUpdate={handleOptionsUpdate}

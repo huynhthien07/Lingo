@@ -74,9 +74,10 @@ export const POST = async (
       userId,
       courseIdNum,
       course.title,
-      course.price * 100, // Convert to cents
+      course.price, // Already in cents from database
       successUrl,
-      cancelUrl
+      cancelUrl,
+      course.currency // Pass currency to service
     );
 
     return NextResponse.json({

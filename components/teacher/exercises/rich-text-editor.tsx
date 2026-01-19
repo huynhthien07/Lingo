@@ -6,9 +6,10 @@ import { Bold, Italic, Underline, Highlighter, Type } from "lucide-react";
 interface RichTextEditorProps {
   value: string;
   onChange: (value: string) => void;
+  placeholder?: string;
 }
 
-export function RichTextEditor({ value, onChange }: RichTextEditorProps) {
+export function RichTextEditor({ value, onChange, placeholder }: RichTextEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -145,6 +146,7 @@ export function RichTextEditor({ value, onChange }: RichTextEditorProps) {
         onInput={handleInput}
         className="min-h-[150px] p-4 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset"
         style={{ whiteSpace: "pre-wrap" }}
+        data-placeholder={placeholder}
       />
     </div>
   );

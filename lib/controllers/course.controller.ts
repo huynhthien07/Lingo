@@ -107,9 +107,11 @@ export const createCourse = async (courseData: {
         title,
         imageSrc,
         createdBy,
-        level: level || null,
+        level: (level || "INTERMEDIATE") as any,
         description: description || null,
-        price: price || null,
+        price: price || 0,
+        currency: "USD",
+        isFree: false,
     }).returning();
 
     return newCourse[0];

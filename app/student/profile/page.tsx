@@ -140,8 +140,8 @@ export default async function StudentProfilePage() {
               <div>
                 <label className="text-sm font-medium text-gray-700">Trạng thái</label>
                 <p className="mt-1">
-                  <Badge variant={dbUser?.isBlocked ? "destructive" : "secondary"}>
-                    {dbUser?.isBlocked ? "Đã khóa" : "Hoạt động"}
+                  <Badge variant={dbUser?.status === "blocked" ? "destructive" : "secondary"}>
+                    {dbUser?.status === "blocked" ? "Đã khóa" : "Hoạt động"}
                   </Badge>
                 </p>
               </div>

@@ -303,6 +303,38 @@ export function SpeakingPractice({ challenge, allChallenges, allProgress, course
               </div>
             )}
 
+            {/* Passage */}
+            {challenge.passage && (
+              <div className="bg-white rounded-lg border border-gray-200 p-4 mb-3">
+                <h3 className="font-semibold text-base mb-2 text-gray-700">📄 Đoạn văn</h3>
+                <div
+                  className="prose prose-sm max-w-none text-gray-800 leading-relaxed text-base whitespace-pre-wrap"
+                  dangerouslySetInnerHTML={{ __html: challenge.passage }}
+                />
+              </div>
+            )}
+
+            {/* Audio */}
+            {challenge.audioSrc && (
+              <div className="mb-3">
+                <audio controls className="w-full">
+                  <source src={challenge.audioSrc} type="audio/mpeg" />
+                  Your browser does not support the audio element.
+                </audio>
+              </div>
+            )}
+
+            {/* Image */}
+            {challenge.imageSrc && (
+              <div className="mb-3">
+                <img
+                  src={challenge.imageSrc}
+                  alt="Challenge context"
+                  className="w-full rounded-lg border"
+                />
+              </div>
+            )}
+
             {/* Recording Area */}
             <div className="bg-white rounded-lg border p-4 mb-3">
               <h3 className="font-semibold text-base mb-4">🎤 Ghi âm</h3>

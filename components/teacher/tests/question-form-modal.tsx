@@ -1,18 +1,26 @@
 "use client";
 
 import { useState } from "react";
-import { X, Plus, Trash2, Check, List } from "lucide-react";
+import { X } from "lucide-react";
 import { AudioUpload } from "@/components/ui/audio-upload";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { RichTextEditor } from "../exercises/rich-text-editor";
+import { QuestionTypeSelector } from "./question-type-selector";
+import { QuestionEditor } from "./question-editor";
+import { QuestionType, getDefaultMetadata } from "@/lib/utils/question-type-mapper";
+import type { QuestionMetadata } from "@/shared/types/questionMetadata";
 
 interface TestQuestion {
   id: number;
   sectionId: number;
   questionText: string;
+  questionType?: QuestionType | null;
+  metadata?: QuestionMetadata | null;
   passage: string | null;
   audioSrc: string | null;
   imageSrc: string | null;
+  correctAnswer?: string | null;
+  explanation?: string | null;
   order: number;
   points: number;
   options: TestQuestionOption[];
@@ -49,41 +57,32 @@ export function QuestionFormModal({
     audioSrc: question.audioSrc || "",
     imageSrc: question.imageSrc || "",
     points: question.points,
+    explanation: question.explanation || "",
   });
 
-  const [options, setOptions] = useState<Array<{ text: string; isCorrect: boolean }>>(
-    question.options?.map((opt) => ({ text: opt.optionText, isCorrect: opt.isCorrect })) || []
+  const [questionType, setQuestionType] = useState<QuestionType | null>(
+    question.questionType || null
+  );
+
+  const [metadata, setMetadata] = useState<QuestionMetadata | null>(
+    question.metadata || null
+  );
+
+  const [correctAnswer, setCorrectAnswer] = useState<string>("");
+
+  const [options, setOptions] = useState<TestQuestionOption[]>(
+    question.options?.map((opt, idx) => ({
+      id: opt.id || idx,
+      questionId: question.id,
+      optionText: opt.optionText,
+      isCorrect: opt.isCorrect,
+      order: opt.order || idx + 1,
+    })) || []
   );
 
   const [saving, setSaving] = useState(false);
-  const [hasSubQuestions, setHasSubQuestions] = useState(
-    question.options && question.options.length > 0
-  );
 
-  const handleAddOption = () => {
-    setOptions([...options, { text: "", isCorrect: false }]);
-  };
 
-  const handleRemoveOption = (index: number) => {
-    if (options.length <= 2) {
-      alert("A question must have at least 2 options");
-      return;
-    }
-    setOptions(options.filter((_, i) => i !== index));
-  };
-
-  const handleOptionChange = (index: number, field: "text" | "isCorrect", value: string | boolean) => {
-    const newOptions = [...options];
-    if (field === "isCorrect" && value === true) {
-      // Uncheck all other options
-      newOptions.forEach((opt, i) => {
-        opt.isCorrect = i === index;
-      });
-    } else {
-      newOptions[index] = { ...newOptions[index], [field]: value };
-    }
-    setOptions(newOptions);
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,21 +93,46 @@ export function QuestionFormModal({
       return;
     }
 
-    if (hasSubQuestions) {
-      if (options.length === 0) {
-        alert("Please add at least one answer option");
-        return;
-      }
+    if (!questionType) {
+      alert("Please select a question type");
+      return;
+    }
 
-      if (options.some((opt) => !opt.text.trim())) {
-        alert("All options must have text");
-        return;
-      }
+    // Validate based on question type
+    const needsOptions =
+      questionType === "SINGLE_CHOICE" ||
+      questionType === "MULTIPLE_CHOICE";
 
-      if (!options.some((opt) => opt.isCorrect)) {
-        alert("Please mark at least one option as correct");
-        return;
-      }
+    if (needsOptions && options.length === 0) {
+      alert("Please add at least one answer option");
+      return;
+    }
+
+    if (needsOptions && options.some((opt) => !opt.optionText.trim())) {
+      alert("All options must have text");
+      return;
+    }
+
+    if (needsOptions && !options.some((opt) => opt.isCorrect)) {
+      alert("Please mark at least one option as correct");
+      return;
+    }
+
+    const needsTextAnswer = questionType === "TEXT_INPUT";
+
+    if (needsTextAnswer && !correctAnswer.trim()) {
+      alert("Please provide a correct answer");
+      return;
+    }
+
+    const needsMetadata =
+      questionType === "MATCHING" ||
+      questionType === "LABELING" ||
+      questionType === "ORDERING";
+
+    if (needsMetadata && !metadata) {
+      alert("Please configure the question metadata");
+      return;
     }
 
     setSaving(true);
@@ -125,14 +149,22 @@ export function QuestionFormModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
-          options: hasSubQuestions ? options : undefined,
+          questionType,
+          metadata,
+          correctAnswer: needsTextAnswer ? correctAnswer : undefined,
+          options: needsOptions ? options.map((opt, idx) => ({
+            optionText: opt.optionText,
+            isCorrect: opt.isCorrect,
+            order: idx + 1,
+          })) : undefined,
         }),
       });
 
       if (response.ok) {
         onSuccess();
       } else {
-        alert("Failed to save question");
+        const errorData = await response.json();
+        alert(`Failed to save question: ${errorData.error || "Unknown error"}`);
       }
     } catch (error) {
       console.error("Error saving question:", error);
@@ -160,153 +192,155 @@ export function QuestionFormModal({
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Question Text */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Question Text *
-            </label>
-            <RichTextEditor
-              value={formData.questionText}
-              onChange={(value) =>
-                setFormData({ ...formData, questionText: value })
-              }
-            />
-          </div>
+          {/* Question Type Selector */}
+          {!questionType && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Select Question Type *
+              </label>
+              <QuestionTypeSelector
+                selectedType={questionType}
+                onSelect={(type) => {
+                  setQuestionType(type);
 
-          {/* Passage (for Reading) */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Passage (Optional - for Reading questions)
-            </label>
-            <RichTextEditor
-              value={formData.passage}
-              onChange={(value) =>
-                setFormData({ ...formData, passage: value })
-              }
-            />
-          </div>
+                  // Initialize metadata for metadata-based question types
+                  if (type === "MATCHING" || type === "LABELING" || type === "ORDERING") {
+                    setMetadata(getDefaultMetadata(type));
+                  } else {
+                    setMetadata(null);
+                  }
 
-          {/* Audio (for Listening) */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Audio (Optional - for Listening questions)
-            </label>
-            <AudioUpload
-              value={formData.audioSrc}
-              onChange={(url) => setFormData({ ...formData, audioSrc: url })}
-            />
-          </div>
+                  // Auto-create 2 default options for choice-based questions
+                  if (type === "SINGLE_CHOICE" || type === "MULTIPLE_CHOICE") {
+                    setOptions([
+                      { id: 1, questionId: question.id, optionText: "", isCorrect: false, order: 1 },
+                      { id: 2, questionId: question.id, optionText: "", isCorrect: false, order: 2 },
+                    ]);
+                  } else {
+                    setOptions([]);
+                  }
+                }}
+              />
+            </div>
+          )}
 
-          {/* Image */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Image (Optional - for questions with diagrams, charts, etc.)
-            </label>
-            <ImageUpload
-              value={formData.imageSrc}
-              onChange={(url) => setFormData({ ...formData, imageSrc: url })}
-            />
-          </div>
-
-          {/* Points */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Points *
-            </label>
-            <input
-              type="number"
-              value={formData.points}
-              onChange={(e) =>
-                setFormData({ ...formData, points: parseInt(e.target.value) })
-              }
-              min="1"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              required
-            />
-          </div>
-
-          {/* Question Type Toggle */}
-          <div className="border-t border-gray-200 pt-4">
-            <div className="flex items-center gap-4 mb-4">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={hasSubQuestions}
-                  onChange={(e) => {
-                    setHasSubQuestions(e.target.checked);
-                    if (e.target.checked && options.length === 0) {
-                      setOptions([
-                        { text: "", isCorrect: false },
-                        { text: "", isCorrect: false },
-                        { text: "", isCorrect: false },
-                        { text: "", isCorrect: false },
-                      ]);
+          {questionType && (
+            <>
+              {/* Selected Type Badge */}
+              <div className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <span className="text-sm font-medium text-blue-900">
+                  Question Type: <strong>{questionType.replace(/_/g, " ")}</strong>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (confirm("Are you sure you want to change the question type? This will reset all answers.")) {
+                      setQuestionType(null);
+                      setOptions([]);
+                      setMetadata(null);
+                      setCorrectAnswer("");
                     }
                   }}
-                  className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                />
-                <span className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                  <List className="w-4 h-4" />
-                  This question has multiple choice options
-                </span>
-              </label>
-            </div>
-
-            {hasSubQuestions && (
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Answer Options *
-                  </label>
-                  <button
-                    type="button"
-                    onClick={handleAddOption}
-                    className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Add Option
-                  </button>
-                </div>
-
-                <div className="space-y-3">
-                  {options.map((option, index) => (
-                    <div key={index} className="flex items-start gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleOptionChange(index, "isCorrect", !option.isCorrect)}
-                        className={`mt-2 w-6 h-6 rounded border-2 flex items-center justify-center flex-shrink-0 ${
-                          option.isCorrect
-                            ? "border-green-500 bg-green-500"
-                            : "border-gray-300 hover:border-green-400"
-                        }`}
-                      >
-                        {option.isCorrect && <Check className="w-4 h-4 text-white" />}
-                      </button>
-                      <input
-                        type="text"
-                        value={option.text}
-                        onChange={(e) => handleOptionChange(index, "text", e.target.value)}
-                        placeholder={`Option ${index + 1}`}
-                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                      {options.length > 2 && (
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveOption(index)}
-                          className="mt-2 p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                <p className="text-xs text-gray-500 mt-2">
-                  Click the checkbox to mark the correct answer
-                </p>
+                  className="text-sm text-blue-600 hover:text-blue-700"
+                >
+                  Change Type
+                </button>
               </div>
-            )}
-          </div>
+
+              {/* Question Text */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Question Text *
+                </label>
+                <RichTextEditor
+                  value={formData.questionText}
+                  onChange={(value) =>
+                    setFormData({ ...formData, questionText: value })
+                  }
+                />
+              </div>
+
+              {/* Audio (for Listening) */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Audio (Optional - for Listening questions)
+                </label>
+                <AudioUpload
+                  value={formData.audioSrc}
+                  onChange={(url) => setFormData({ ...formData, audioSrc: url })}
+                />
+              </div>
+
+              {/* Image */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Image (Optional - for questions with diagrams, charts, etc.)
+                </label>
+                <ImageUpload
+                  value={formData.imageSrc}
+                  onChange={(url) => setFormData({ ...formData, imageSrc: url })}
+                />
+              </div>
+
+              {/* Points */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Points *
+                </label>
+                <input
+                  type="number"
+                  value={formData.points}
+                  onChange={(e) =>
+                    setFormData({ ...formData, points: parseInt(e.target.value) })
+                  }
+                  min="1"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                />
+              </div>
+
+              {/* Question Editor */}
+              <div className="border-t border-gray-200 pt-6">
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Answer Configuration *
+                </label>
+                <QuestionEditor
+                  questionType={questionType}
+                  options={options}
+                  onOptionsChange={(newOptions) => {
+                    setOptions(newOptions.map((opt, idx) => ({
+                      ...opt,
+                      questionId: question.id,
+                      order: opt.order || idx + 1,
+                    })));
+                  }}
+                  metadata={metadata}
+                  onMetadataChange={setMetadata}
+                  correctAnswer={correctAnswer}
+                  onCorrectAnswerChange={setCorrectAnswer}
+                  testId={testId}
+                />
+              </div>
+
+              {/* Explanation */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Explanation (Optional)
+                </label>
+                <textarea
+                  value={formData.explanation}
+                  onChange={(e) =>
+                    setFormData({ ...formData, explanation: e.target.value })
+                  }
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  rows={3}
+                  placeholder="Explain why this is the correct answer"
+                />
+              </div>
+            </>
+          )}
+
+
 
           {/* Actions */}
           <div className="flex items-center gap-3 pt-4 border-t border-gray-200">

@@ -61,7 +61,7 @@ export const getAllUsers = async (
   if (userName) conditions.push(ilike(users.userName, `%${userName}%`));
   if (email) conditions.push(ilike(users.email, `%${email}%`));
   if (status) conditions.push(eq(users.status, status));
-  if (role) conditions.push(eq(users.role, role));
+  if (role) conditions.push(eq(users.role, role as "STUDENT" | "TEACHER" | "ADMIN"));
 
   // Teachers can only see students
   const requesterIsTeacher = await isTeacher(requesterId);
@@ -72,13 +72,16 @@ export const getAllUsers = async (
   const whereCondition = conditions.length > 0 ? and(...conditions) : undefined;
 
   // Get data
+  // Determine the sort column
+  const sortColumn = (users[sortField as keyof typeof users] as any) || users.createdAt;
+
   const data = await db.query.users.findMany({
     where: whereCondition,
     limit,
     offset,
-    orderBy: sortOrder === 'asc' 
-      ? asc(users[sortField as keyof typeof users] || users.createdAt)
-      : desc(users[sortField as keyof typeof users] || users.createdAt),
+    orderBy: sortOrder === 'asc'
+      ? asc(sortColumn)
+      : desc(sortColumn),
   });
 
   // Get total count
@@ -154,7 +157,7 @@ export const createUser = async (
     userId: clerkUser.id,
     userName: data.username,
     email: data.email,
-    role: data.role,
+    role: data.role as "STUDENT" | "TEACHER" | "ADMIN",
     status: "active",
   }).returning();
 
@@ -215,18 +218,24 @@ export const updateUser = async (
     throw new Error("Cannot block protected admin account");
   }
 
-  // Update in Clerk if email/username changed
-  if (data.email || data.userName) {
+  // Update in Clerk if username or role changed
+  if (data.userName || data.role) {
     await updateClerkUser(userId, {
       username: data.userName,
-      email: data.email,
+      role: data.role,
     });
   }
 
   // Update in database
+  const updateData: any = {};
+  if (data.userName !== undefined) updateData.userName = data.userName;
+  if (data.email !== undefined) updateData.email = data.email;
+  if (data.status !== undefined) updateData.status = data.status;
+  if (data.role !== undefined) updateData.role = data.role as "STUDENT" | "TEACHER" | "ADMIN";
+
   const [updated] = await db
     .update(users)
-    .set(data)
+    .set(updateData)
     .where(eq(users.userId, userId))
     .returning();
 
@@ -285,9 +294,13 @@ export const bulkUpdateUsers = async (
   }
 
   // Update
+  const updateData: any = {};
+  if (data.status !== undefined) updateData.status = data.status;
+  if (data.role !== undefined) updateData.role = data.role as "STUDENT" | "TEACHER" | "ADMIN";
+
   const updated = await db
     .update(users)
-    .set(data)
+    .set(updateData)
     .where(inArray(users.userId, targetIds))
     .returning();
 
@@ -468,9 +481,7 @@ export const updateAdminUser = async (id: number, data: any) => {
     console.log(`🔄 Updating Clerk metadata - Role: ${user.role} → ${updateData.role}`);
     try {
       await updateClerkUser(user.userId, {
-        publicMetadata: {
-          role: updateData.role,
-        },
+        role: updateData.role,
       });
       console.log('✅ Clerk metadata updated');
     } catch (error) {

@@ -4,8 +4,8 @@
  */
 
 import db from "@/db/drizzle";
-import { courses, teacherAssignments, courseEnrollments, users, units, lessons } from "@/db/schema";
-import { eq, and, desc, asc, ilike, or, sql, count } from "drizzle-orm";
+import { courses, teacherAssignments, courseEnrollments, units, lessons } from "@/db/schema";
+import { eq, and, desc, ilike, or, count } from "drizzle-orm";
 
 /**
  * Get paginated list of courses for a teacher
@@ -80,6 +80,9 @@ export const getTeacherCourses = async (
       price: courses.price,
       currency: courses.currency,
       isFree: courses.isFree,
+      bandFrom: courses.bandFrom,
+      bandTo: courses.bandTo,
+      courseGoal: courses.courseGoal,
       createdBy: courses.createdBy,
       createdAt: courses.createdAt,
       updatedAt: courses.updatedAt,
@@ -156,6 +159,9 @@ export const getTeacherCourseById = async (courseId: number, teacherId: string) 
   return {
     ...course,
     enrollmentCount: Number(enrollmentCount),
+    bandFrom: course.bandFrom || null,
+    bandTo: course.bandTo || null,
+    courseGoal: course.courseGoal || null,
   };
 };
 
@@ -175,6 +181,9 @@ export const createTeacherCourse = async (teacherId: string, data: any) => {
       price: data.price || 0,
       currency: data.currency || "USD",
       isFree: data.isFree || false,
+      bandFrom: data.bandFrom || null,
+      bandTo: data.bandTo || null,
+      courseGoal: data.courseGoal || null,
       createdBy: teacherId, // Set the creator
     })
     .returning();

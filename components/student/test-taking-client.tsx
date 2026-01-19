@@ -43,6 +43,8 @@ interface Question {
   id: number;
   sectionId: number;
   questionText: string;
+  imageSrc?: string | null;
+  audioSrc?: string | null;
   order: number;
   points: number;
   options: QuestionOption[];
@@ -81,6 +83,7 @@ export function TestTakingClient({ testId }: TestTakingClientProps) {
   const [showConfirmExit, setShowConfirmExit] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [exiting, setExiting] = useState(false);
+  const [isAdmissionTest, setIsAdmissionTest] = useState(false);
 
   useEffect(() => {
     fetchTest();
@@ -105,9 +108,26 @@ export function TestTakingClient({ testId }: TestTakingClientProps) {
 
   const fetchTest = async () => {
     try {
-      const response = await fetch(`/api/student/tests/${testId}`);
-      const data = await response.json();
-      setTest(data);
+      // Try to fetch as admission test first (no auth required)
+      let response = await fetch(`/api/admission-tests/${testId}`);
+
+      if (response.ok) {
+        const data = await response.json();
+        setTest(data);
+        setIsAdmissionTest(true);
+        return;
+      }
+
+      // If not an admission test, try student test API
+      response = await fetch(`/api/student/tests/${testId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setTest(data);
+        setIsAdmissionTest(false);
+        return;
+      }
+
+      console.error("Error fetching test: Not found");
     } catch (error) {
       console.error("Error fetching test:", error);
     } finally {
@@ -117,10 +137,16 @@ export function TestTakingClient({ testId }: TestTakingClientProps) {
 
   const handleStartTest = async () => {
     try {
-      const response = await fetch(`/api/student/tests/${testId}/start`, {
+      // Use appropriate API based on test type
+      const apiUrl = isAdmissionTest
+        ? `/api/admission-tests/${testId}/start`
+        : `/api/student/tests/${testId}/start`;
+
+      const response = await fetch(apiUrl, {
         method: "POST",
       });
-      const attempt = await response.json();
+      const data = await response.json();
+      const attempt = data.attempt || data;
       setAttemptId(attempt.id);
       setStartTime(new Date(attempt.startedAt));
       setIsStarted(true);
@@ -148,7 +174,12 @@ export function TestTakingClient({ testId }: TestTakingClientProps) {
 
     // Save to server
     try {
-      await fetch(`/api/student/tests/attempts/${attemptId}/answer`, {
+      // Use appropriate API based on test type
+      const apiUrl = isAdmissionTest
+        ? `/api/admission-tests/attempts/${attemptId}/answer`
+        : `/api/student/tests/attempts/${attemptId}/answer`;
+
+      await fetch(apiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ questionId, selectedOptionId, textAnswer, skillType }),
@@ -163,12 +194,14 @@ export function TestTakingClient({ testId }: TestTakingClientProps) {
 
     setSubmitting(true);
     try {
-      const response = await fetch(
-        `/api/student/tests/attempts/${attemptId}/complete`,
-        {
-          method: "POST",
-        }
-      );
+      // Use appropriate API based on test type
+      const apiUrl = isAdmissionTest
+        ? `/api/admission-tests/attempts/${attemptId}/complete`
+        : `/api/student/tests/attempts/${attemptId}/complete`;
+
+      const response = await fetch(apiUrl, {
+        method: "POST",
+      });
 
       if (!response.ok) {
         const error = await response.json();
@@ -183,7 +216,12 @@ export function TestTakingClient({ testId }: TestTakingClientProps) {
 
       // Keep popup open for 2 seconds, then redirect
       setTimeout(() => {
-        router.push(`/student/tests/${testId}/result/${attemptId}`);
+        // Check if it's an admission test
+        if (isAdmissionTest || result.isAdmission) {
+          router.push(`/admission-test/${testId}/result/${attemptId}`);
+        } else {
+          router.push(`/student/tests/${testId}/result/${attemptId}`);
+        }
       }, 2000);
     } catch (error) {
       console.error("Error submitting test:", error);
@@ -477,25 +515,23 @@ export function TestTakingClient({ testId }: TestTakingClientProps) {
             <AlertDialogTitle>
               {submitting ? "Đang nộp bài..." : "Xác nhận nộp bài?"}
             </AlertDialogTitle>
-            <AlertDialogDescription>
-              {submitting ? (
-                <div className="flex items-center gap-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                  <span>Vui lòng đợi, hệ thống đang xử lý bài làm của bạn...</span>
-                </div>
-              ) : (
-                <>
-                  Bạn đã trả lời {answeredCount} / {allQuestions.length} câu hỏi.
-                  {answeredCount < allQuestions.length && (
-                    <span className="block mt-2 text-orange-600">
-                      Bạn còn {allQuestions.length - answeredCount} câu chưa trả
-                      lời. Bạn có chắc chắn muốn nộp bài?
-                    </span>
-                  )}
-                </>
-              )}
-            </AlertDialogDescription>
           </AlertDialogHeader>
+          {submitting ? (
+            <div className="flex items-center gap-2">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+              <span>Vui lòng đợi, hệ thống đang xử lý bài làm của bạn...</span>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <div>Bạn đã trả lời {answeredCount} / {allQuestions.length} câu hỏi.</div>
+              {answeredCount < allQuestions.length && (
+                <div className="text-orange-600">
+                  Bạn còn {allQuestions.length - answeredCount} câu chưa trả
+                  lời. Bạn có chắc chắn muốn nộp bài?
+                </div>
+              )}
+            </div>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel disabled={submitting}>Tiếp tục làm bài</AlertDialogCancel>
             <AlertDialogAction onClick={handleSubmitTest} disabled={submitting}>
@@ -513,18 +549,16 @@ export function TestTakingClient({ testId }: TestTakingClientProps) {
               <AlertCircle className="w-5 h-5" />
               Thoát bài test?
             </AlertDialogTitle>
-            <AlertDialogDescription>
-              <div className="space-y-2">
-                <div>
-                  Nếu bạn thoát, <strong>toàn bộ tiến độ sẽ bị xóa</strong> và bạn sẽ phải làm lại từ đầu.
-                </div>
-                <div className="text-orange-600 font-medium">
-                  Bạn đã trả lời {answeredCount} / {allQuestions.length} câu hỏi.
-                </div>
-                <div>Bạn có chắc chắn muốn thoát?</div>
-              </div>
-            </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="space-y-2">
+            <div>
+              Nếu bạn thoát, <strong>toàn bộ tiến độ sẽ bị xóa</strong> và bạn sẽ phải làm lại từ đầu.
+            </div>
+            <div className="text-orange-600 font-medium">
+              Bạn đã trả lời {answeredCount} / {allQuestions.length} câu hỏi.
+            </div>
+            <div>Bạn có chắc chắn muốn thoát?</div>
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Tiếp tục làm bài</AlertDialogCancel>
             <AlertDialogAction

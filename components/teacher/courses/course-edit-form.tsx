@@ -15,6 +15,10 @@ interface Course {
   price: number;
   currency: string;
   isFree: boolean;
+  bandFrom: number | null;
+  bandTo: number | null;
+  courseGoal: string | null;
+  enrollmentCount: number;
 }
 
 interface CourseEditFormProps {
@@ -33,6 +37,9 @@ export function CourseEditForm({ course, onSave, saving }: CourseEditFormProps) 
     price: course.price,
     currency: course.currency,
     isFree: course.isFree,
+    bandFrom: course.bandFrom || 5.0,
+    bandTo: course.bandTo || 6.0,
+    courseGoal: course.courseGoal || "IELTS",
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -163,6 +170,83 @@ export function CourseEditForm({ course, onSave, saving }: CourseEditFormProps) 
             </div>
           </>
         )}
+
+        {/* Band Range - For Course Recommendation */}
+        <div className="md:col-span-2 border-t pt-4">
+          <h3 className="text-lg font-semibold text-gray-900 mb-3">
+            Course Recommendation Settings
+          </h3>
+          <p className="text-sm text-gray-600 mb-4">
+            Set the band score range for this course to enable personalized recommendations
+          </p>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Band From (Minimum Entry Level)
+          </label>
+          <input
+            type="number"
+            step="0.5"
+            min="0"
+            max="9"
+            value={formData.bandFrom}
+            onChange={(e) => setFormData({ ...formData, bandFrom: parseFloat(e.target.value) })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="e.g., 5.0"
+            disabled={saving}
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Minimum band score required to enroll (0-9, step 0.5)
+          </p>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Band To (Target Level)
+          </label>
+          <input
+            type="number"
+            step="0.5"
+            min="0"
+            max="9"
+            value={formData.bandTo}
+            onChange={(e) => setFormData({ ...formData, bandTo: parseFloat(e.target.value) })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="e.g., 6.0"
+            disabled={saving}
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Target band score after completing the course (0-9, step 0.5)
+          </p>
+        </div>
+
+        <div className="md:col-span-2">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Course Goal
+          </label>
+          <select
+            value={formData.courseGoal}
+            onChange={(e) => setFormData({ ...formData, courseGoal: e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            disabled={saving}
+          >
+            <option value="IELTS">IELTS Preparation</option>
+            <option value="GENERAL_ENGLISH">General English</option>
+          </select>
+          <p className="text-xs text-gray-500 mt-1">
+            Select the primary goal of this course for better recommendations
+          </p>
+        </div>
+
+        <div className="md:col-span-2 bg-gray-50 p-4 rounded-lg">
+          <p className="text-sm text-gray-700">
+            <strong>Enrollment Count:</strong> {course.enrollmentCount} students
+          </p>
+          <p className="text-xs text-gray-500 mt-1">
+            This metric is used for popularity ranking in recommendations
+          </p>
+        </div>
       </div>
 
       {/* Submit Button */}

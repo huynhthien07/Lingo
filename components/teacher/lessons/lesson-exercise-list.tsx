@@ -11,7 +11,7 @@ interface Exercise {
   difficulty: string;
   points: number;
   order: number;
-  optionCount: number;
+  questionCount: number;
 }
 
 interface LessonExerciseListProps {
@@ -156,7 +156,7 @@ export function LessonExerciseList({ lessonId, refreshKey }: LessonExerciseListP
               <span className="text-gray-400">•</span>
               <span className="text-gray-600">{exercise.points} points</span>
               <span className="text-gray-400">•</span>
-              <span className="text-gray-600">{exercise.optionCount} options</span>
+              <span className="text-gray-600">{exercise.questionCount} {exercise.questionCount === 1 ? 'question' : 'questions'}</span>
             </div>
           </div>
 

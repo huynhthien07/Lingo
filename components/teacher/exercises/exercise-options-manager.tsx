@@ -10,8 +10,8 @@ interface Option {
   id: number;
   text: string;
   correct: boolean;
-  imageSrc: string | null;
-  audioSrc: string | null;
+  imageSrc?: string | null;
+  audioSrc?: string | null;
   order: number;
 }
 

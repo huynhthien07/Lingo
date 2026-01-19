@@ -120,7 +120,7 @@ export const getTeacherUnitById = async (unitId: number, teacherId: string) => {
     },
   });
 
-  if (!unit) {
+  if (!unit || !unit.course) {
     throw new Error("Unit not found");
   }
 

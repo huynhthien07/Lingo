@@ -86,10 +86,6 @@ export function ExerciseInfoForm({ exercise, onSave, saving }: ExerciseInfoFormP
     setFormData({ ...formData, type: firstType });
   };
 
-  const needsPassage = formData.type.startsWith("READING_");
-  const needsAudio = formData.type.startsWith("LISTENING_");
-  const needsImage = formData.type === "LISTENING_MAP_LABELLING" || formData.type === "WRITING_TASK_1";
-
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Question with Rich Text Editor */}
@@ -175,47 +171,47 @@ export function ExerciseInfoForm({ exercise, onSave, saving }: ExerciseInfoFormP
         </div>
       </div>
 
-      {/* Reading Passage (for Reading exercises) */}
-      {needsPassage && (
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Reading Passage *
-          </label>
-          <RichTextEditor
-            value={formData.passage}
-            onChange={(value) => setFormData({ ...formData, passage: value })}
-          />
-          <p className="text-xs text-gray-500 mt-1">
-            The text that students will read for this exercise
-          </p>
-        </div>
-      )}
+      {/* Passage (Optional - for all exercise types) */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Passage (Optional)
+        </label>
+        <RichTextEditor
+          value={formData.passage}
+          onChange={(value) => setFormData({ ...formData, passage: value })}
+        />
+        <p className="text-xs text-gray-500 mt-1">
+          Reading passage or context text for this exercise
+        </p>
+      </div>
 
-      {/* Audio (for Listening exercises) */}
-      {needsAudio && (
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Audio File *
-          </label>
-          <AudioUpload
-            value={formData.audioSrc}
-            onChange={(url) => setFormData({ ...formData, audioSrc: url })}
-          />
-        </div>
-      )}
+      {/* Image (Optional - for all exercise types) */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Image (Optional)
+        </label>
+        <ImageUpload
+          value={formData.imageSrc}
+          onChange={(url) => setFormData({ ...formData, imageSrc: url })}
+        />
+        <p className="text-xs text-gray-500 mt-1">
+          Image, map, chart, graph, or diagram for this exercise
+        </p>
+      </div>
 
-      {/* Image (for Map Labelling or Writing Task 1) */}
-      {needsImage && (
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Image {formData.type === "LISTENING_MAP_LABELLING" ? "(Map)" : "(Chart/Graph/Diagram)"}
-          </label>
-          <ImageUpload
-            value={formData.imageSrc}
-            onChange={(url) => setFormData({ ...formData, imageSrc: url })}
-          />
-        </div>
-      )}
+      {/* Audio (Optional - for all exercise types) */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Audio (Optional)
+        </label>
+        <AudioUpload
+          value={formData.audioSrc}
+          onChange={(url) => setFormData({ ...formData, audioSrc: url })}
+        />
+        <p className="text-xs text-gray-500 mt-1">
+          Audio file for listening exercises or pronunciation examples
+        </p>
+      </div>
 
       {/* Explanation */}
       <div>

@@ -1,23 +1,18 @@
-import { MessageSquare } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ChatbotInterface } from "@/components/student/chatbot/chatbot-interface";
 
 export default function StudentChatbotPage() {
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">AI Chatbot</h1>
-        <p className="text-gray-600 mt-2">Trò chuyện với AI để luyện tập tiếng Anh</p>
+    <div className="p-6 max-w-7xl mx-auto h-full flex flex-col">
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-gray-900">AI Tutor Chatbot</h1>
+        <p className="text-gray-600 mt-2">Trò chuyện với AI để luyện tập tiếng Anh và cải thiện kỹ năng IELTS của bạn</p>
       </div>
 
-      <Card>
-        <CardContent className="flex flex-col items-center justify-center py-16">
-          <MessageSquare className="h-20 w-20 text-gray-400 mb-4" />
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">Tính năng đang phát triển</h3>
-          <p className="text-gray-600 text-center max-w-md">
-            Tính năng AI Chatbot đang được phát triển. Bạn sẽ có thể trò chuyện với AI để luyện tập tiếng Anh trong thời gian tới.
-          </p>
-        </CardContent>
-      </Card>
+      {/* Chatbot Interface */}
+      <div className="flex-1 min-h-0">
+        <ChatbotInterface />
+      </div>
     </div>
   );
 }

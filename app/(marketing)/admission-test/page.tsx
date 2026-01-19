@@ -135,7 +135,7 @@ export default async function AdmissionTestPage() {
                     </Button>
                   </SignUpButton>
                   <SignInButton mode="modal">
-                    <Button size="lg" variant="outline" className="text-lg px-8">
+                    <Button size="lg" variant="primaryOutline" className="text-lg px-8">
                       Đăng nhập
                     </Button>
                   </SignInButton>

@@ -1,6 +1,6 @@
 'use client'
 import { Button } from "@/components/ui/button";
-import { ClerkLoaded, ClerkLoading, SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
+import { ClerkLoaded, ClerkLoading, SignedIn, SignedOut, SignInButton, SignUpButton, UserButton } from "@clerk/nextjs";
 import { Loader } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -25,7 +25,7 @@ export const Header = () => {
                     <Link href="/courses-public" className="text-slate-700 hover:text-green-600 font-medium transition">
                         Khóa học
                     </Link>
-                    <Link href="/admission-test" className="text-slate-700 hover:text-green-600 font-medium transition">
+                    <Link href="/admission-tests" className="text-slate-700 hover:text-green-600 font-medium transition">
                         Test Admission
                     </Link>
                     <Link href="/about" className="text-slate-700 hover:text-green-600 font-medium transition">
@@ -44,29 +44,21 @@ export const Header = () => {
                     <ClerkLoaded>
                         <SignedIn>
                             <Button asChild variant="ghost" size="sm">
-                                <Link href="/dashboard">Dashboard</Link>
+                                <Link href="/student">Dashboard</Link>
                             </Button>
                             <UserButton afterSignOutUrl="/" />
                         </SignedIn>
                         <SignedOut>
-                            <SignInButton
-                                mode="modal"
-                                afterSignInUrl="/dashboard"
-                                afterSignUpUrl="/dashboard"
-                            >
+                            <SignInButton mode="modal">
                                 <Button variant="ghost" size="sm">
                                     Đăng nhập
                                 </Button>
                             </SignInButton>
-                            <SignInButton
-                                mode="modal"
-                                afterSignInUrl="/dashboard"
-                                afterSignUpUrl="/dashboard"
-                            >
+                            <SignUpButton mode="modal">
                                 <Button size="sm">
                                     Đăng ký
                                 </Button>
-                            </SignInButton>
+                            </SignUpButton>
                         </SignedOut>
                     </ClerkLoaded>
                 </div>

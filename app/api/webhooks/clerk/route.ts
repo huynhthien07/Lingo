@@ -108,6 +108,10 @@ export async function POST(req: Request) {
     if (eventType === 'user.deleted') {
         const { id } = evt.data;
 
+        if (!id) {
+            return new NextResponse('Missing user ID', { status: 400 });
+        }
+
         console.log(`🗑️ Deleting user: ${id}`);
 
         try {

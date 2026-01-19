@@ -23,8 +23,17 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get("status") || "GRADED";
     const skillType = searchParams.get("skillType");
 
-    // Build query
-    let query = db
+    // Build where conditions
+    const conditions = [eq(testSubmissions.userId, userId)];
+    if (status) {
+      conditions.push(eq(testSubmissions.status, status as any));
+    }
+    if (skillType) {
+      conditions.push(eq(testSubmissions.skillType, skillType as any));
+    }
+
+    // Build and execute query
+    const submissions = await db
       .select({
         id: testSubmissions.id,
         attemptId: testSubmissions.attemptId,
@@ -50,23 +59,8 @@ export async function GET(request: NextRequest) {
       .leftJoin(tests, eq(testSubmissions.testId, tests.id))
       .leftJoin(testQuestions, eq(testSubmissions.questionId, testQuestions.id))
       .leftJoin(users, eq(testSubmissions.gradedBy, users.userId))
-      .where(eq(testSubmissions.userId, userId));
-
-    // Apply filters
-    const conditions = [eq(testSubmissions.userId, userId)];
-    if (status) {
-      conditions.push(eq(testSubmissions.status, status as any));
-    }
-    if (skillType) {
-      conditions.push(eq(testSubmissions.skillType, skillType as any));
-    }
-
-    if (conditions.length > 0) {
-      query = query.where(and(...conditions)) as any;
-    }
-
-    // Order by graded date (newest first)
-    const submissions = await query.orderBy(desc(testSubmissions.gradedAt));
+      .where(and(...conditions))
+      .orderBy(desc(testSubmissions.gradedAt));
 
     return NextResponse.json(submissions, { status: 200 });
   } catch (error) {

@@ -2,8 +2,8 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { CourseDetailView } from "@/components/teacher/courses/course-detail-view";
 import db from "@/db/drizzle";
-import { courses, teacherAssignments } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { courses, teacherAssignments, courseEnrollments } from "@/db/schema";
+import { eq, and, count } from "drizzle-orm";
 
 interface CourseDetailPageProps {
   params: Promise<{
@@ -49,9 +49,20 @@ export default async function CourseDetailPage({ params }: CourseDetailPageProps
     redirect("/teacher/courses");
   }
 
+  // Get enrollment count
+  const [{ enrollmentCount }] = await db
+    .select({ enrollmentCount: count() })
+    .from(courseEnrollments)
+    .where(eq(courseEnrollments.courseId, courseId));
+
+  const courseWithEnrollment = {
+    ...course,
+    enrollmentCount: Number(enrollmentCount) || 0,
+  };
+
   return (
     <div className="space-y-6">
-      <CourseDetailView courseId={courseId} initialCourse={course} />
+      <CourseDetailView courseId={courseId} initialCourse={courseWithEnrollment} />
     </div>
   );
 }

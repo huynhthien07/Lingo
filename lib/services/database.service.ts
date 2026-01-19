@@ -150,9 +150,9 @@ export const exists = async (
  * @returns Transaction result
  */
 export const transaction = async <T>(
-    callback: (tx: typeof db) => Promise<T>
+    callback: (tx: any) => Promise<T>
 ): Promise<T> => {
-    return await db.transaction(callback);
+    return await db.transaction(callback as any);
 };
 
 // Export commonly used operators

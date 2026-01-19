@@ -8,11 +8,16 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { AudioPlayer } from "@/components/ui/audio-player";
 import { AudioRecorder } from "@/components/ui/audio-recorder";
+import { QuestionRenderer } from "./question-inputs/question-renderer";
+import type { QuestionType } from "@/lib/utils/question-type-mapper";
+import type { QuestionAnswer } from "@/shared/types/questionMetadata";
 
 interface Question {
   id: number;
   sectionId: number;
   questionText: string;
+  questionType?: QuestionType | null; // ✅ NEW: Question input type
+  metadata?: any; // ✅ NEW: Metadata for complex question types
   imageSrc?: string | null;
   audioSrc?: string | null;
   order: number;
@@ -69,38 +74,53 @@ export function TestQuestionDisplay({
   hasNext,
   hasPrevious,
 }: TestQuestionDisplayProps) {
-  const [selectedOption, setSelectedOption] = useState<number | null>(
-    answer?.selectedOptionId || null
-  );
+  // ⚠️ DEPRECATED: Only used for Speaking/Writing now
   const [textAnswer, setTextAnswer] = useState<string>(
     answer?.textAnswer || ""
   );
 
   useEffect(() => {
-    setSelectedOption(answer?.selectedOptionId || null);
     setTextAnswer(answer?.textAnswer || "");
   }, [question.id, answer]);
-
-  const handleOptionSelect = (optionId: number) => {
-    setSelectedOption(optionId);
-    onAnswerChange(question.id, optionId);
-  };
 
   const handleTextChange = (text: string) => {
     setTextAnswer(text);
     onAnswerChange(question.id, undefined, text);
   };
 
-  const handleRecordingComplete = (blob: Blob, duration: number) => {
+  const handleRecordingComplete = (blob: Blob, _duration: number) => {
     // For speaking, we'll store the audio URL in textAnswer temporarily
     // In a real implementation, you'd upload the blob and get a URL
     const url = URL.createObjectURL(blob);
     handleTextChange(url);
   };
 
+  // ✅ NEW: Determine question type (fallback to old logic if not set)
+  const questionType: QuestionType = question.questionType ||
+    (section.skillType === "SPEAKING" ? "TEXT_INPUT" :
+     section.skillType === "WRITING" ? "TEXT_INPUT" :
+     question.options && question.options.length > 0 ? "SINGLE_CHOICE" : "TEXT_INPUT");
+
   const isSpeaking = section.skillType === "SPEAKING";
   const isWriting = section.skillType === "WRITING";
-  const isMultipleChoice = question.options && question.options.length > 0;
+
+  // ✅ NEW: Convert answer to QuestionAnswer format
+  const currentAnswer: QuestionAnswer | undefined = answer ? {
+    selectedOptionId: answer.selectedOptionId || undefined,
+    text: answer.textAnswer || undefined,
+  } as any : undefined;
+
+  // ✅ NEW: Handle answer change from QuestionRenderer
+  const handleAnswerChange = (newAnswer: QuestionAnswer) => {
+    const singleChoice = newAnswer as any;
+    const textInput = newAnswer as any;
+
+    if (singleChoice.selectedOptionId !== undefined) {
+      onAnswerChange(question.id, singleChoice.selectedOptionId);
+    } else if (textInput.text !== undefined) {
+      onAnswerChange(question.id, undefined, textInput.text);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -173,44 +193,18 @@ export function TestQuestionDisplay({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {/* Multiple Choice Options */}
-          {isMultipleChoice && question.options.map((option) => (
-            <button
-              key={option.id}
-              onClick={() => handleOptionSelect(option.id)}
-              className={`
-                w-full text-left p-4 rounded-lg border-2 transition-all
-                ${
-                  selectedOption === option.id
-                    ? "border-blue-600 bg-blue-50"
-                    : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
-                }
-              `}
-            >
-              <div className="flex items-start gap-3">
-                <div
-                  className={`
-                  mt-0.5 h-5 w-5 rounded-full border-2 flex items-center justify-center
-                  ${
-                    selectedOption === option.id
-                      ? "border-blue-600 bg-blue-600"
-                      : "border-gray-300"
-                  }
-                `}
-                >
-                  {selectedOption === option.id && (
-                    <div className="h-2 w-2 rounded-full bg-white"></div>
-                  )}
-                </div>
-                <div
-                  className="flex-1"
-                  dangerouslySetInnerHTML={{ __html: option.optionText }}
-                />
-              </div>
-            </button>
-          ))}
+          {/* ✅ NEW: Use QuestionRenderer for all question types */}
+          {!isSpeaking && !isWriting && (
+            <QuestionRenderer
+              questionType={questionType}
+              options={question.options}
+              metadata={question.metadata}
+              answer={currentAnswer}
+              onAnswerChange={handleAnswerChange}
+            />
+          )}
 
-          {/* Speaking - Audio Recorder */}
+          {/* Speaking - Audio Recorder (special case) */}
           {isSpeaking && (
             <AudioRecorder
               onRecordingComplete={handleRecordingComplete}
@@ -218,7 +212,7 @@ export function TestQuestionDisplay({
             />
           )}
 
-          {/* Writing - Text Area */}
+          {/* Writing - Text Area (special case) */}
           {isWriting && (
             <div className="space-y-2">
               <Textarea

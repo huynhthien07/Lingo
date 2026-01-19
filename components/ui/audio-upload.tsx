@@ -4,14 +4,14 @@ import { useState, useRef } from "react";
 import { Upload, Loader2, X, Music, Volume2 } from "lucide-react";
 
 interface AudioUploadProps {
-  value: string;
+  value: string | null;
   onChange: (url: string) => void;
   disabled?: boolean;
 }
 
 export function AudioUpload({ value, onChange, disabled }: AudioUploadProps) {
   const [uploading, setUploading] = useState(false);
-  const [preview, setPreview] = useState(value);
+  const [preview, setPreview] = useState(value || "");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {

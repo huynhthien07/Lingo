@@ -182,7 +182,7 @@ export const getTeacherLessonById = async (lessonId: number, teacherId: string) 
     },
   });
 
-  if (!lesson) {
+  if (!lesson || !lesson.unit || !lesson.unit.course) {
     throw new Error("Lesson not found");
   }
 
@@ -287,7 +287,7 @@ export const updateTeacherLesson = async (
     },
   });
 
-  if (!lesson) {
+  if (!lesson || !lesson.unit) {
     throw new Error("Lesson not found");
   }
 
@@ -350,7 +350,7 @@ export const deleteTeacherLesson = async (lessonId: number, teacherId: string) =
     },
   });
 
-  if (!lesson) {
+  if (!lesson || !lesson.unit) {
     throw new Error("Lesson not found");
   }
 

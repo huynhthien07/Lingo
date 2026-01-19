@@ -17,6 +17,10 @@ interface Course {
   isFree: boolean;
   studentCount: number;
   lessonCount: number;
+  bandFrom?: number | null;
+  bandTo?: number | null;
+  courseGoal?: string | null;
+  enrollmentCount?: number;
 }
 
 interface CourseCardProps {
