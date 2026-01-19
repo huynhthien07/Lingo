@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import db from "@/db/drizzle";
 import { testSubmissions, users } from "@/db/schema";
-import { desc } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 
 /**
  * GET /api/debug/teacher-submissions
@@ -32,7 +32,7 @@ export async function GET() {
         gradedAt: testSubmissions.gradedAt,
       })
       .from(testSubmissions)
-      .leftJoin(users, testSubmissions.userId === users.userId)
+      .leftJoin(users, eq(testSubmissions.userId, users.userId))
       .orderBy(desc(testSubmissions.createdAt));
 
     // Group by attemptId + questionId to find duplicates

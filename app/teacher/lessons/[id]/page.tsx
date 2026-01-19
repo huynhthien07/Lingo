@@ -23,7 +23,15 @@ export default async function LessonDetailPage({ params }: LessonDetailPageProps
 
   let lesson = null;
   try {
-    lesson = await getTeacherLessonById(lessonId, userId);
+    const fetchedLesson = await getTeacherLessonById(lessonId, userId);
+    if (fetchedLesson) {
+      lesson = {
+        ...fetchedLesson,
+        description: fetchedLesson.description || "",
+        estimatedDuration: fetchedLesson.estimatedDuration || 0,
+        videoUrl: fetchedLesson.videoUrl || null,
+      };
+    }
     console.log("Fetched lesson:", JSON.stringify(lesson, null, 2));
   } catch (error) {
     console.error("Error fetching lesson:", error);

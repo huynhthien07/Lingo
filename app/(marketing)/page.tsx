@@ -46,7 +46,7 @@ export default function Home() {
                 </SignedOut>
                 <SignedIn>
                   <Button size="lg" className="text-lg px-8" asChild>
-                    <Link href="/dashboard">
+                    <Link href="/student">
                       Vào Dashboard
                     </Link>
                   </Button>

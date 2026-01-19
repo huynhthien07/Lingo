@@ -149,7 +149,7 @@ export function AudioRecorder({
             <Button
               onClick={stopRecording}
               size="lg"
-              variant="destructive"
+              variant="danger"
               className="h-16 px-8 animate-pulse"
             >
               <Square className="w-6 h-6 mr-2" fill="white" />

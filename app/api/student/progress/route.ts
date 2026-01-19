@@ -1,6 +1,8 @@
 /**
  * Student Progress API
  * POST /api/student/progress - Update challenge progress and calculate lesson/course completion
+ *
+ * ✅ NEW: Server-side answer validation for all question types
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -12,9 +14,12 @@ import {
   userProgress,
   challenges,
   units,
-  courseEnrollments
+  courseEnrollments,
+  questions
 } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
+import { validateAnswer } from "@/lib/utils/answer-validator";
+import type { QuestionType } from "@/lib/utils/question-type-mapper";
 
 export const POST = async (req: NextRequest) => {
   try {
@@ -25,12 +30,17 @@ export const POST = async (req: NextRequest) => {
     }
 
     const body = await req.json();
-    const { challengeId, answers, score } = body;
+    const { challengeId, answers } = body; // ✅ REMOVED: score (will calculate server-side)
 
-    // Get challenge info
+    // Get challenge info with questions
     const challenge = await db.query.challenges.findFirst({
       where: eq(challenges.id, challengeId),
       with: {
+        questions: {
+          with: {
+            options: true,
+          },
+        },
         lesson: {
           with: {
             unit: {
@@ -47,6 +57,93 @@ export const POST = async (req: NextRequest) => {
     if (!challenge) {
       return NextResponse.json({ error: "Challenge not found" }, { status: 404 });
     }
+
+    // ✅ NEW: Validate answers server-side
+    let totalScore = 0;
+    let totalPossible = 0;
+    let correctCount = 0;
+    const questionResults: any[] = [];
+
+    for (const question of challenge.questions) {
+      const questionType = question.questionType as QuestionType | null;
+      const answerData = answers[question.id];
+
+      if (!answerData) {
+        // Question not answered
+        questionResults.push({
+          questionId: question.id,
+          isCorrect: false,
+          pointsEarned: 0,
+          maxPoints: 1,
+        });
+        totalPossible += 1;
+        continue;
+      }
+
+      // Validate answer based on question type
+      if (questionType) {
+        let correctAnswer: any = null;
+        let shouldValidate = true;
+
+        if (questionType === "SINGLE_CHOICE") {
+          const correctOption = question.options.find(opt => opt.correct);
+          correctAnswer = correctOption?.id;
+        } else if (questionType === "MULTIPLE_CHOICE") {
+          correctAnswer = question.options.filter(opt => opt.correct).map(opt => opt.id);
+        } else if (questionType === "TEXT_INPUT") {
+          correctAnswer = question.correctAnswer || null;
+          shouldValidate = correctAnswer !== null;
+        } else if (questionType === "MATCHING" || questionType === "LABELING" || questionType === "ORDERING") {
+          correctAnswer = null;
+          shouldValidate = question.metadata !== null;
+        }
+
+        if (shouldValidate) {
+          const validation = validateAnswer(
+            questionType,
+            answerData,
+            correctAnswer,
+            question.metadata,
+            1 // Each question worth 1 point
+          );
+
+          questionResults.push({
+            questionId: question.id,
+            isCorrect: validation.isCorrect,
+            pointsEarned: validation.pointsEarned,
+            maxPoints: validation.maxPoints,
+            feedback: validation.feedback, // ✅ Include feedback (e.g., "3/5 pairs correct")
+          });
+
+          totalScore += validation.pointsEarned;
+          totalPossible += validation.maxPoints;
+          if (validation.isCorrect) {
+            correctCount++;
+          }
+        }
+      } else {
+        // ⚠️ FALLBACK: Old validation for backward compatibility (SINGLE_CHOICE only)
+        const selectedOptionId = typeof answerData === 'number' ? answerData : answerData.selectedOptionId;
+        const correctOption = question.options.find(opt => opt.correct);
+        const isCorrect = selectedOptionId === correctOption?.id;
+
+        questionResults.push({
+          questionId: question.id,
+          isCorrect,
+          pointsEarned: isCorrect ? 1 : 0,
+          maxPoints: 1,
+        });
+
+        totalScore += isCorrect ? 1 : 0;
+        totalPossible += 1;
+        if (isCorrect) {
+          correctCount++;
+        }
+      }
+    }
+
+    // Calculate final score (0-10 scale)
+    const score = totalPossible > 0 ? Math.round((totalScore / totalPossible) * 10) : 0;
 
     // Update or create challenge progress
     const existingProgress = await db.query.challengeProgress.findFirst({
@@ -193,6 +290,10 @@ export const POST = async (req: NextRequest) => {
       lessonCompleted,
       pointsEarned,
       totalPoints: (userProgressData?.points || 0) + pointsEarned,
+      score, // ✅ NEW: Return calculated score
+      correctCount, // ✅ NEW: Return number of correct answers
+      totalQuestions: challenge.questions.length, // ✅ NEW: Return total questions
+      questionResults, // ✅ NEW: Return detailed results for each question
     });
   } catch (error: any) {
     console.error("Error updating progress:", error);

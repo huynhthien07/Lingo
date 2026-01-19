@@ -1,6 +1,5 @@
 "use server";
 
-import { getUserSubscription } from '@/db/queries';
 import { stripe } from '@/lib/stripe';
 
 import { absoluteUrl } from "@/lib/utils";
@@ -8,6 +7,11 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 
 const returnUrl = absoluteUrl ("/shop");
 
+/**
+ * Create Stripe checkout URL for subscription
+ * Note: This is kept for legacy subscription support
+ * New course payments should use course-specific checkout
+ */
 export const createStripeUrl = async () => {
     const {userId} = await auth();
     const user = await currentUser();
@@ -16,16 +20,7 @@ export const createStripeUrl = async () => {
         throw new Error ("Unauthorized");
     }
 
-    const userSubscription = await getUserSubscription();
-
-    if (userSubscription && userSubscription.stripeCustomerId){
-        const stripeSession = await stripe.billingPortal.sessions.create({
-            customer: userSubscription.stripeCustomerId,
-            return_url: returnUrl,
-        });
-        return {data: stripeSession.url};
-    }
-
+    // Create subscription checkout session
     const stripeSession = await stripe.checkout.sessions.create({
         mode: "subscription",
         payment_method_types: ["card"],

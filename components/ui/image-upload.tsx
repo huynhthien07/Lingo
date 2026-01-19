@@ -5,14 +5,14 @@ import { Upload, Loader2, X, Image as ImageIcon } from "lucide-react";
 import Image from "next/image";
 
 interface ImageUploadProps {
-  value: string;
+  value: string | null;
   onChange: (url: string) => void;
   disabled?: boolean;
 }
 
 export function ImageUpload({ value, onChange, disabled }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false);
-  const [preview, setPreview] = useState(value);
+  const [preview, setPreview] = useState(value || "");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {

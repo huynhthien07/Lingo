@@ -6,8 +6,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import db from "@/db/drizzle";
-import { testAttempts, testAnswers, testSubmissions, testQuestions } from "@/db/schema";
+import { testAttempts, testAnswers, testSubmissions, testQuestions, tests } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
+import { calculateBandScore } from "@/lib/utils/band-score";
 
 /**
  * POST /api/student/tests/attempts/[attemptId]/complete
@@ -65,13 +66,30 @@ export async function POST(
       });
     }
 
-    // Get answers with question info (optimized query - only non-speaking/writing)
+    // Get test info to check if it's an admission test
+    const test = await db.query.tests.findFirst({
+      where: eq(tests.id, attempt.testId),
+      with: {
+        sections: {
+          with: {
+            questions: true,
+          },
+        },
+      },
+    });
+
+    if (!test) {
+      return NextResponse.json({ error: "Test not found" }, { status: 404 });
+    }
+
+    // Get answers with question and section info
     const answers = await db
       .select({
         answerId: testAnswers.id,
         questionId: testAnswers.questionId,
         pointsEarned: testAnswers.pointsEarned,
         questionPoints: testQuestions.points,
+        sectionId: testQuestions.sectionId,
       })
       .from(testAnswers)
       .leftJoin(testQuestions, eq(testAnswers.questionId, testQuestions.id))
@@ -89,21 +107,63 @@ export async function POST(
       0
     );
 
-    // Calculate band score (simplified IELTS conversion)
+    // Calculate overall band score
     let bandScore = 0;
     let percentage = 0;
 
     if (totalPossiblePoints > 0) {
       percentage = (totalScore / totalPossiblePoints) * 100;
-      if (percentage >= 90) bandScore = 9.0;
-      else if (percentage >= 80) bandScore = 8.0;
-      else if (percentage >= 70) bandScore = 7.0;
-      else if (percentage >= 60) bandScore = 6.5;
-      else if (percentage >= 50) bandScore = 6.0;
-      else if (percentage >= 40) bandScore = 5.5;
-      else if (percentage >= 30) bandScore = 5.0;
-      else if (percentage >= 20) bandScore = 4.5;
-      else bandScore = 4.0;
+      bandScore = calculateBandScore(totalScore, totalPossiblePoints);
+    }
+
+    // For admission tests, calculate Reading and Listening band scores separately
+    let readingBandScore: number | null = null;
+    let listeningBandScore: number | null = null;
+
+    if (test.isAdmission) {
+      // Group answers by section skill type
+      const sectionScores = new Map<number, { score: number; total: number; skillType: string }>();
+
+      for (const answer of answers) {
+        if (!answer.sectionId) continue;
+
+        const section = test.sections.find((s) => s.id === answer.sectionId);
+        if (!section) continue;
+
+        const existing = sectionScores.get(answer.sectionId) || {
+          score: 0,
+          total: 0,
+          skillType: section.skillType,
+        };
+
+        existing.score += answer.pointsEarned || 0;
+        existing.total += answer.questionPoints || 0;
+        sectionScores.set(answer.sectionId, existing);
+      }
+
+      // Calculate band scores for Reading and Listening sections
+      let readingScore = 0;
+      let readingTotal = 0;
+      let listeningScore = 0;
+      let listeningTotal = 0;
+
+      for (const [_, sectionData] of sectionScores) {
+        if (sectionData.skillType === "READING") {
+          readingScore += sectionData.score;
+          readingTotal += sectionData.total;
+        } else if (sectionData.skillType === "LISTENING") {
+          listeningScore += sectionData.score;
+          listeningTotal += sectionData.total;
+        }
+      }
+
+      if (readingTotal > 0) {
+        readingBandScore = calculateBandScore(readingScore, readingTotal);
+      }
+
+      if (listeningTotal > 0) {
+        listeningBandScore = calculateBandScore(listeningScore, listeningTotal);
+      }
     }
 
     // Count pending submissions (speaking/writing already saved)
@@ -123,6 +183,8 @@ export async function POST(
         score: totalScore,
         totalPoints: totalPossiblePoints,
         bandScore,
+        readingBandScore,
+        listeningBandScore,
         completedAt: new Date(),
       })
       .where(eq(testAttempts.id, attemptIdNum))
@@ -134,6 +196,9 @@ export async function POST(
       totalPoints: totalPossiblePoints,
       percentage: Math.round(percentage),
       bandScore,
+      readingBandScore,
+      listeningBandScore,
+      isAdmission: test.isAdmission,
       hasPendingSubmissions: pendingSubmissions.length > 0,
       pendingSubmissionsCount: pendingSubmissions.length,
     });

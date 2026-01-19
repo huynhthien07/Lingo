@@ -121,11 +121,7 @@ export const getLessonById = async (lessonId: number) => {
 /**
  * Create a new lesson
  */
-export const createLesson = async (lessonData: {
-    title: string;
-    unitId: number;
-    order: number;
-}) => {
+export const createLesson = async (lessonData: any) => {
     const { title, unitId, order } = lessonData;
 
     // Validate required fields
@@ -138,6 +134,10 @@ export const createLesson = async (lessonData: {
         title,
         unitId,
         order,
+        skillType: (lessonData.skillType || "READING") as any,
+        description: lessonData.description || null,
+        estimatedDuration: lessonData.estimatedDuration || null,
+        videoUrl: lessonData.videoUrl || null,
     }).returning();
 
     return newLesson[0];

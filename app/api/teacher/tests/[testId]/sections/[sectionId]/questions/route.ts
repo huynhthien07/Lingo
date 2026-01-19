@@ -18,8 +18,12 @@ export async function POST(
     const question = await addTestQuestion({
       sectionId: parseInt(sectionId),
       questionText: body.questionText,
+      questionType: body.questionType || null,
       imageSrc: body.imageSrc || null,
       audioSrc: body.audioSrc || null,
+      correctAnswer: body.correctAnswer || null,
+      explanation: body.explanation || null,
+      metadata: body.metadata || null,
       points: body.points,
       options: body.options,
     });

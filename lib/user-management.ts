@@ -15,18 +15,19 @@ export const upsertUserToUsersTable = async () => {
         throw new Error("Unauthorized");
     }
 
+    // Extract user data outside try block so it's available in catch
+    const userEmail = user.emailAddresses[0]?.emailAddress || "";
+    const userName = user.firstName || user.username || "User";
+    const userImageSrc = user.imageUrl || "/mascot.svg";
+    const firstName = user.firstName || "";
+    const lastName = user.lastName || "";
+
     try {
         // Check if user already exists in users table
         const existingUser = await db.select()
             .from(users)
             .where(eq(users.userId, userId))
             .limit(1);
-
-        const userEmail = user.emailAddresses[0]?.emailAddress || "";
-        const userName = user.firstName || user.username || "User";
-        const userImageSrc = user.imageUrl || "/mascot.svg";
-        const firstName = user.firstName || "";
-        const lastName = user.lastName || "";
 
         if (existingUser.length > 0) {
             // Update existing user with latest login information

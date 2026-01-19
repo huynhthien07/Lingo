@@ -66,19 +66,34 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { text } = body;
+    const { text, imageSrc, correctAnswer, explanation, questionType, metadata } = body;
 
     if (!text || !text.trim()) {
       return NextResponse.json({ error: "Question text is required" }, { status: 400 });
     }
 
+    // Validate questionType if provided
+    const validQuestionTypes = ["SINGLE_CHOICE", "MULTIPLE_CHOICE", "TEXT_INPUT", "MATCHING", "LABELING", "ORDERING"];
+    if (questionType && !validQuestionTypes.includes(questionType)) {
+      return NextResponse.json({ error: "Invalid question type" }, { status: 400 });
+    }
+
+    // Build update object (only update fields that are provided)
+    const updateData: any = {
+      text: text.trim(),
+      updatedAt: new Date(),
+    };
+
+    if (imageSrc !== undefined) updateData.imageSrc = imageSrc || null;
+    if (correctAnswer !== undefined) updateData.correctAnswer = correctAnswer?.trim() || null;
+    if (explanation !== undefined) updateData.explanation = explanation?.trim() || null;
+    if (questionType !== undefined) updateData.questionType = questionType || null;
+    if (metadata !== undefined) updateData.metadata = metadata || null;
+
     // Update question
     const [updatedQuestion] = await db
       .update(questions)
-      .set({
-        text: text.trim(),
-        updatedAt: new Date(),
-      })
+      .set(updateData)
       .where(eq(questions.id, qId))
       .returning();
 

@@ -20,8 +20,12 @@ export async function PUT(
 
     const question = await updateTestQuestion(parseInt(questionId), {
       questionText: body.questionText,
-      imageSrc: body.imageSrc || null,
-      audioSrc: body.audioSrc || null,
+      questionType: body.questionType,
+      imageSrc: body.imageSrc,
+      audioSrc: body.audioSrc,
+      correctAnswer: body.correctAnswer,
+      explanation: body.explanation,
+      metadata: body.metadata,
       points: body.points,
       options: body.options,
     });

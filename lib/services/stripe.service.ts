@@ -8,7 +8,7 @@
 import Stripe from "stripe";
 
 // Initialize Stripe client
-const stripe = new Stripe(process.env.STRIPE_API_KEY!, {
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
     apiVersion: "2025-03-31.basil",
     typescript: true,
 });
@@ -29,6 +29,7 @@ export const getStripeClient = () => {
  * @param amount - Amount in cents
  * @param successUrl - URL to redirect on success
  * @param cancelUrl - URL to redirect on cancel
+ * @param currency - Currency code (USD, VND, EUR, etc.) - defaults to USD
  * @returns Checkout session
  */
 export const createCheckoutSession = async (
@@ -37,15 +38,19 @@ export const createCheckoutSession = async (
     courseName: string,
     amount: number,
     successUrl: string,
-    cancelUrl: string
+    cancelUrl: string,
+    currency: string = "USD"
 ) => {
+    // Normalize currency to lowercase for Stripe
+    const stripeCurrency = currency.toLowerCase();
+
     const session = await stripe.checkout.sessions.create({
         mode: "payment",
         payment_method_types: ["card"],
         line_items: [
             {
                 price_data: {
-                    currency: "usd",
+                    currency: stripeCurrency,
                     product_data: {
                         name: courseName,
                         description: `Access to ${courseName}`,

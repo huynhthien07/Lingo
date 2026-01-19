@@ -15,6 +15,22 @@ import Link from "next/link";
 import { asc, eq, and } from "drizzle-orm";
 import { CourseEnrollButton } from "@/components/course-enroll-button";
 
+// Format price with currency
+function formatPrice(price: number, currency: string): string {
+  const amount = price / 100; // Convert from cents
+  const currencySymbols: { [key: string]: string } = {
+    USD: "$",
+    VND: "₫",
+    EUR: "€",
+  };
+  const symbol = currencySymbols[currency] || currency;
+
+  if (currency === "VND") {
+    return `${amount.toLocaleString("vi-VN")} ${symbol}`;
+  }
+  return `${symbol}${amount.toFixed(2)}`;
+}
+
 export default async function CoursesPublicPage() {
   const { userId } = await auth();
 
@@ -47,34 +63,35 @@ export default async function CoursesPublicPage() {
         {/* Courses Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {allCourses.map((course) => (
-            <Card key={course.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <div className="relative w-full h-48 mb-4 rounded-lg overflow-hidden bg-gradient-to-br from-green-400 to-blue-500">
-                  {course.imageSrc ? (
-                    <Image
-                      src={course.imageSrc}
-                      alt={course.title}
-                      fill
-                      className="object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <BookOpen className="w-20 h-20 text-white" />
-                    </div>
-                  )}
-                </div>
-                <CardTitle className="text-2xl">{course.title}</CardTitle>
-                <CardDescription className="text-base">
-                  {course.description || "Khóa học IELTS chất lượng cao"}
-                </CardDescription>
-              </CardHeader>
+            <Link key={course.id} href={`/courses-public/${course.id}`}>
+              <Card className="hover:shadow-lg transition-shadow h-full cursor-pointer">
+                <CardHeader>
+                  <div className="relative w-full h-48 mb-4 rounded-lg overflow-hidden bg-gradient-to-br from-green-400 to-blue-500">
+                    {course.imageSrc ? (
+                      <Image
+                        src={course.imageSrc}
+                        alt={course.title}
+                        fill
+                        className="object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <BookOpen className="w-20 h-20 text-white" />
+                      </div>
+                    )}
+                  </div>
+                  <CardTitle className="text-2xl">{course.title}</CardTitle>
+                  <CardDescription className="text-base">
+                    {course.description || "Khóa học IELTS chất lượng cao"}
+                  </CardDescription>
+                </CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   {/* Price */}
                   <div className="flex items-center justify-between py-2 border-b">
                     <span className="text-sm text-gray-600">Học phí:</span>
                     <span className="text-xl font-bold text-green-600">
-                      {course.isFree ? "Miễn phí" : `$${course.price}`}
+                      {course.isFree ? "Miễn phí" : formatPrice(course.price, course.currency)}
                     </span>
                   </div>
 
@@ -92,23 +109,24 @@ export default async function CoursesPublicPage() {
                   </div>
                 </div>
               </CardContent>
-              <CardFooter>
-                {userId ? (
-                  <CourseEnrollButton
-                    courseId={course.id}
-                    isFree={course.isFree}
-                    price={course.price}
-                    isEnrolled={userEnrollments.includes(course.id)}
-                  />
-                ) : (
-                  <SignUpButton mode="modal">
-                    <Button className="w-full" size="lg">
-                      Đăng ký ngay
-                    </Button>
-                  </SignUpButton>
-                )}
-              </CardFooter>
-            </Card>
+                <CardFooter>
+                  {userId ? (
+                    <CourseEnrollButton
+                      courseId={course.id}
+                      isFree={course.isFree}
+                      price={course.price}
+                      isEnrolled={userEnrollments.includes(course.id)}
+                    />
+                  ) : (
+                    <SignUpButton mode="modal">
+                      <Button className="w-full" size="lg">
+                        Đăng ký ngay
+                      </Button>
+                    </SignUpButton>
+                  )}
+                </CardFooter>
+              </Card>
+            </Link>
           ))}
         </div>
 

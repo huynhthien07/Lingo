@@ -23,30 +23,17 @@ export async function GET(request: NextRequest) {
     const period = searchParams.get("period") || "ALL_TIME"; // DAILY, WEEKLY, MONTHLY, ALL_TIME
     const courseId = searchParams.get("courseId"); // Optional: filter by course
 
-    // Calculate date range based on period
-    let dateFilter = null;
-    const now = new Date();
-    
-    if (period === "DAILY") {
-      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      dateFilter = gte(userProgress.updatedAt, startOfDay);
-    } else if (period === "WEEKLY") {
-      const startOfWeek = new Date(now);
-      startOfWeek.setDate(now.getDate() - now.getDay());
-      startOfWeek.setHours(0, 0, 0, 0);
-      dateFilter = gte(userProgress.updatedAt, startOfWeek);
-    } else if (period === "MONTHLY") {
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      dateFilter = gte(userProgress.updatedAt, startOfMonth);
-    }
+    // Note: userProgress table doesn't have updatedAt field
+    // For time-based leaderboards, we would need to use leaderboard_entries table
+    // For now, we'll show all-time leaderboard regardless of period parameter
 
     // Build query to get top users by points
-    let query = db
+    const topUsers = await db
       .select({
         userId: users.userId,
-        userName: users.name,
+        userName: users.userName,
         userEmail: users.email,
-        userImageSrc: users.imageSrc,
+        userImageSrc: users.userImageSrc,
         points: userProgress.points,
         activeCourseId: userProgress.activeCourseId,
       })
@@ -54,13 +41,6 @@ export async function GET(request: NextRequest) {
       .innerJoin(users, eq(userProgress.userId, users.userId))
       .orderBy(desc(userProgress.points))
       .limit(100);
-
-    // Apply date filter if needed
-    if (dateFilter) {
-      query = query.where(dateFilter) as any;
-    }
-
-    const topUsers = await query;
 
     // If courseId is specified, filter users enrolled in that course
     let filteredUsers = topUsers;

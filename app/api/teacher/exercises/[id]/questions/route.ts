@@ -61,10 +61,16 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { text, imageSrc, correctAnswer, explanation } = body;
+    const { text, imageSrc, correctAnswer, explanation, questionType, metadata } = body;
 
     if (!text || !text.trim()) {
       return NextResponse.json({ error: "Question text is required" }, { status: 400 });
+    }
+
+    // Validate questionType if provided
+    const validQuestionTypes = ["SINGLE_CHOICE", "MULTIPLE_CHOICE", "TEXT_INPUT", "MATCHING", "LABELING", "ORDERING"];
+    if (questionType && !validQuestionTypes.includes(questionType)) {
+      return NextResponse.json({ error: "Invalid question type" }, { status: 400 });
     }
 
     // Get current max order
@@ -82,9 +88,11 @@ export async function POST(
       .values({
         challengeId: exerciseId,
         text: text.trim(),
+        questionType: questionType || null,
         imageSrc: imageSrc || null,
         correctAnswer: correctAnswer?.trim() || null,
         explanation: explanation?.trim() || null,
+        metadata: metadata || null,
         order: maxOrder + 1,
       })
       .returning();

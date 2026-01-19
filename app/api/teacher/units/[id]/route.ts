@@ -19,7 +19,7 @@ import {
  */
 export const GET = async (
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) => {
   try {
     const { userId } = await auth();
@@ -28,7 +28,8 @@ export const GET = async (
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const unitId = parseInt(params.id);
+    const { id } = await params;
+    const unitId = parseInt(id);
     const unit = await getTeacherUnitById(unitId, userId);
 
     return NextResponse.json({
@@ -50,7 +51,7 @@ export const GET = async (
  */
 export const PUT = async (
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) => {
   try {
     const { userId } = await auth();
@@ -59,7 +60,8 @@ export const PUT = async (
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const unitId = parseInt(params.id);
+    const { id } = await params;
+    const unitId = parseInt(id);
     const body = await req.json();
     const unit = await updateTeacherUnit(unitId, userId, body);
 
@@ -82,7 +84,7 @@ export const PUT = async (
  */
 export const DELETE = async (
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) => {
   try {
     const { userId } = await auth();
@@ -91,7 +93,8 @@ export const DELETE = async (
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const unitId = parseInt(params.id);
+    const { id } = await params;
+    const unitId = parseInt(id);
     await deleteTeacherUnit(unitId, userId);
 
     return NextResponse.json({

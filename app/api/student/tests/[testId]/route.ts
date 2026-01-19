@@ -8,6 +8,7 @@ import { auth } from "@clerk/nextjs/server";
 import db from "@/db/drizzle";
 import { tests } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { transformMetadata } from "@/lib/utils/metadata-transformer";
 
 /**
  * GET /api/student/tests/[testId]
@@ -53,6 +54,20 @@ export async function GET(
 
     if (!test) {
       return NextResponse.json({ error: "Test not found" }, { status: 404 });
+    }
+
+    // Transform metadata V2 to full format for student display
+    for (const section of test.sections) {
+      for (const question of section.questions) {
+        if (question.metadata && question.questionType) {
+          question.metadata = await transformMetadata(
+            question.questionType,
+            question.metadata,
+            undefined,
+            test.id
+          );
+        }
+      }
     }
 
     return NextResponse.json(test);

@@ -7,6 +7,7 @@ import { eq, and } from "drizzle-orm";
 import { PracticeQuiz } from "@/components/student/practice-quiz";
 import { WritingPractice } from "@/components/student/practice-writing";
 import { SpeakingPractice } from "@/components/student/practice-speaking";
+import { transformMetadata } from "@/lib/utils/metadata-transformer";
 
 interface PracticePageProps {
   params: Promise<{ courseId: string; lessonId: string; challengeId: string }>;
@@ -89,6 +90,32 @@ export default async function PracticePage({ params }: PracticePageProps) {
   const allProgress = await db.query.challengeProgress.findMany({
     where: eq(challengeProgress.userId, userId),
   });
+
+  // Transform metadata V2 to full format for student display
+  for (const question of challenge.questions) {
+    if (question.metadata && question.questionType) {
+      question.metadata = await transformMetadata(
+        question.questionType,
+        question.metadata,
+        challengeIdNum, // Use challengeId to scope labels/items
+        undefined
+      );
+    }
+  }
+
+  // Also transform for allChallenges
+  for (const ch of allChallenges) {
+    for (const question of ch.questions) {
+      if (question.metadata && question.questionType) {
+        question.metadata = await transformMetadata(
+          question.questionType,
+          question.metadata,
+          ch.id, // Use each challenge's ID
+          undefined
+        );
+      }
+    }
+  }
 
   // Debug: Log challenge type
   console.log("Challenge type:", challenge.type);

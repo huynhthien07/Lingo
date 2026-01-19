@@ -19,6 +19,9 @@ import { AudioPlayer } from "@/components/ui/audio-player";
 import { toast } from "sonner";
 import confetti from "canvas-confetti";
 import { playCorrectSound, playIncorrectSound, playFinishSound } from "@/lib/utils/sound";
+import { QuestionRenderer } from "./question-inputs/question-renderer";
+import type { QuestionType } from "@/lib/utils/question-type-mapper";
+import type { QuestionAnswer } from "@/shared/types/questionMetadata";
 
 interface PracticeQuizProps {
   challenge: any;
@@ -33,11 +36,15 @@ export function PracticeQuiz({ challenge, allChallenges, allProgress, courseId, 
   const [currentChallengeIndex, setCurrentChallengeIndex] = useState(
     allChallenges.findIndex(c => c.id === challenge.id)
   );
-  const [answers, setAnswers] = useState<Record<number, number>>({});
+
+  // ✅ NEW: Support all question types
+  const [answers, setAnswers] = useState<Record<number, QuestionAnswer>>({});
+  const [questionResults, setQuestionResults] = useState<Record<number, any>>({});
   const [allSubmitted, setAllSubmitted] = useState(false);
   const [challengeCompleted, setChallengeCompleted] = useState(false);
   const [lessonCompleted, setLessonCompleted] = useState(false);
   const [score, setScore] = useState(0);
+  const [correctCount, setCorrectCount] = useState(0);
   const [pointsEarned, setPointsEarned] = useState(0);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
 
@@ -55,6 +62,11 @@ export function PracticeQuiz({ challenge, allChallenges, allProgress, courseId, 
   ).length;
   const totalChallenges = allChallenges.length;
 
+  // Check if current challenge is already completed
+  const isCurrentChallengeCompleted = allProgress.some(
+    p => p.challengeId === currentChallenge.id && p.completed
+  );
+
   // Hide student sidebar on mount
   useEffect(() => {
     const sidebar = document.querySelector('[data-student-sidebar]');
@@ -70,27 +82,24 @@ export function PracticeQuiz({ challenge, allChallenges, allProgress, courseId, 
     };
   }, []);
 
-  // Check if a question is answered correctly
+  // ✅ NEW: Check if a question is answered correctly (from server response)
   const isQuestionCorrect = (questionId: number) => {
     if (!allSubmitted) return null;
-    const selectedOptionId = answers[questionId];
-    const question = questions.find((q: any) => q.id === questionId);
-    const correctOption = question?.options.find((opt: any) => opt.correct);
-    return selectedOptionId === correctOption?.id;
+    return questionResults[questionId]?.isCorrect || false;
   };
 
-  // Handle answer selection
-  const handleSelectOption = (questionId: number, optionId: number) => {
+  // ✅ NEW: Handle answer change for any question type
+  const handleAnswerChange = (questionId: number, answer: QuestionAnswer) => {
     if (allSubmitted) return; // Can't change after submit
 
     setAnswers({
       ...answers,
-      [questionId]: optionId,
+      [questionId]: answer,
     });
   };
 
-  // Handle submit all answers
-  const handleSubmitAll = () => {
+  // ✅ NEW: Handle submit all answers (server-side validation)
+  const handleSubmitAll = async () => {
     // Check if all questions are answered
     const unansweredQuestions = questions.filter((q: any) => !answers[q.id]);
     if (unansweredQuestions.length > 0) {
@@ -98,25 +107,54 @@ export function PracticeQuiz({ challenge, allChallenges, allProgress, courseId, 
       return;
     }
 
-    // Calculate score
-    let correctCount = 0;
-    questions.forEach((q: any) => {
-      const selectedOptionId = answers[q.id];
-      const correctOption = q.options.find((opt: any) => opt.correct);
-      if (selectedOptionId === correctOption?.id) {
-        correctCount++;
+    try {
+      // Submit to server for validation
+      const response = await fetch("/api/student/progress", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          challengeId: currentChallenge.id,
+          answers,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to submit answers");
       }
-    });
 
-    setScore(correctCount);
-    setAllSubmitted(true);
+      const data = await response.json();
 
-    if (correctCount === totalQuestions) {
-      toast.success(`Hoàn hảo! Bạn đã trả lời đúng tất cả ${totalQuestions} câu! 🎉`);
-      playCorrectSound();
-    } else {
-      toast.info(`Bạn đã trả lời đúng ${correctCount}/${totalQuestions} câu`);
-      playIncorrectSound();
+      // Update state with server response
+      setScore(data.score);
+      setCorrectCount(data.correctCount);
+      setPointsEarned(data.pointsEarned);
+      setAllSubmitted(true);
+
+      // Store question results for feedback
+      const results: Record<number, any> = {};
+      data.questionResults.forEach((result: any) => {
+        results[result.questionId] = result;
+      });
+      setQuestionResults(results);
+
+      // Show appropriate message based on score
+      const scorePercentage = (data.score / 10) * 100;
+      if (data.correctCount === totalQuestions) {
+        toast.success(`Hoàn hảo! Bạn đã trả lời đúng tất cả ${totalQuestions} câu! 🎉`);
+        playCorrectSound();
+      } else if (scorePercentage >= 80) {
+        toast.success(`Tốt lắm! Điểm: ${data.score}/10 (${data.correctCount}/${totalQuestions} câu đúng hoàn toàn)`);
+        playCorrectSound();
+      } else if (scorePercentage >= 50) {
+        toast.info(`Khá tốt! Điểm: ${data.score}/10 (${data.correctCount}/${totalQuestions} câu đúng hoàn toàn)`);
+        playIncorrectSound();
+      } else {
+        toast.info(`Cần cố gắng thêm! Điểm: ${data.score}/10 (${data.correctCount}/${totalQuestions} câu đúng hoàn toàn)`);
+        playIncorrectSound();
+      }
+    } catch (error) {
+      console.error("Error submitting answers:", error);
+      toast.error("Có lỗi xảy ra khi nộp bài. Vui lòng thử lại!");
     }
   };
 
@@ -124,60 +162,35 @@ export function PracticeQuiz({ challenge, allChallenges, allProgress, courseId, 
   const handleReset = () => {
     if (confirm("Bạn có chắc muốn làm lại bài tập? Tiến độ hiện tại sẽ bị xóa.")) {
       setAnswers({});
+      setQuestionResults({});
       setAllSubmitted(false);
       setChallengeCompleted(false);
       setScore(0);
+      setCorrectCount(0);
       toast.info("Đã reset bài tập!");
     }
   };
 
-  const submitProgress = async (challengeScore: number) => {
-    try {
-      const response = await fetch("/api/student/progress", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          challengeId: currentChallenge.id,
-          answers,
-          score: challengeScore,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setPointsEarned(data.pointsEarned);
-        setChallengeCompleted(true);
-
-        if (data.lessonCompleted) {
-          setLessonCompleted(true);
-
-          // Celebration for lesson completion
-          confetti({
-            particleCount: 150,
-            spread: 80,
-            origin: { y: 0.6 },
-            colors: ['#10B981', '#3B82F6', '#F59E0B', '#EF4444']
-          });
-
-          playFinishSound();
-        } else {
-          playCorrectSound();
-        }
-      }
-    } catch (error) {
-      console.error("Error submitting progress:", error);
-    }
-  };
-
-  // Handle complete challenge
+  // ✅ NEW: Handle complete challenge (already submitted in handleSubmitAll)
   const handleComplete = () => {
     if (!allSubmitted) {
       toast.error("Vui lòng nộp bài trước khi hoàn thành!");
       return;
     }
 
-    const challengeScore = Math.round((score / questions.length) * 10);
-    submitProgress(challengeScore);
+    setChallengeCompleted(true);
+
+    if (lessonCompleted) {
+      confetti({
+        particleCount: 150,
+        spread: 80,
+        origin: { y: 0.6 },
+        colors: ['#10B981', '#3B82F6', '#F59E0B', '#EF4444']
+      });
+      playFinishSound();
+    } else {
+      playCorrectSound();
+    }
   };
 
   // Handle exit with confirmation
@@ -242,7 +255,10 @@ export function PracticeQuiz({ challenge, allChallenges, allProgress, courseId, 
               <div className="bg-blue-50 rounded-lg p-4 mb-4">
                 <p className="text-sm text-gray-600 mb-1">Điểm số</p>
                 <p className="text-4xl font-bold text-blue-600">
-                  {score}/{totalQuestions}
+                  {correctCount}/{totalQuestions}
+                </p>
+                <p className="text-sm text-gray-500 mt-1">
+                  Điểm: {score}/10
                 </p>
                 <p className="text-sm text-green-600 mt-2 font-semibold">
                   +{pointsEarned} điểm
@@ -251,7 +267,7 @@ export function PracticeQuiz({ challenge, allChallenges, allProgress, courseId, 
               <div className="bg-gray-50 rounded-lg p-3 mb-4">
                 <p className="text-sm text-gray-600">Tiến độ bài học</p>
                 <p className="text-lg font-semibold text-gray-900">
-                  {completedChallengesCount + 1}/{totalChallenges} bài tập
+                  {isCurrentChallengeCompleted ? completedChallengesCount : completedChallengesCount + 1}/{totalChallenges} bài tập
                 </p>
               </div>
             </div>
@@ -415,31 +431,45 @@ export function PracticeQuiz({ challenge, allChallenges, allProgress, courseId, 
           {/* Main Content */}
           <div className="flex-1 overflow-y-auto">
           <div className="max-w-full mx-auto px-4 py-4">
-            {/* Exercise Instructions */}
+            {/* Exercise Information Section - Unified for all question types */}
+
+            {/* Instructions/Question */}
             {currentChallenge.question && (
               <div className="bg-blue-50 rounded-lg border border-blue-200 p-4 mb-3">
-                <h3 className="font-semibold text-base mb-2 text-blue-900">📋 Đề bài</h3>
-                <p className="text-gray-800 whitespace-pre-wrap leading-relaxed text-base">
-                  {currentChallenge.question}
-                </p>
+                <div
+                  className="prose prose-sm max-w-none text-gray-800 leading-relaxed text-base"
+                  dangerouslySetInnerHTML={{ __html: currentChallenge.question }}
+                />
               </div>
             )}
 
-            {/* Passage/Audio if available */}
+            {/* Passage */}
             {currentChallenge.passage && (
-              <div className="bg-white rounded-lg border p-4 mb-3">
-                <h3 className="font-semibold text-base mb-2.5">📖 Đoạn văn</h3>
-                <p className="text-gray-800 whitespace-pre-wrap leading-relaxed text-base">
-                  {currentChallenge.passage}
-                </p>
+              <div className="bg-white rounded-lg border border-gray-200 p-4 mb-3">
+                <h3 className="font-semibold text-base mb-2 text-gray-700">📄 Đoạn văn</h3>
+                <div
+                  className="prose prose-sm max-w-none text-gray-800 leading-relaxed text-base whitespace-pre-wrap"
+                  dangerouslySetInnerHTML={{ __html: currentChallenge.passage }}
+                />
               </div>
             )}
 
+            {/* Image */}
+            {currentChallenge.imageSrc && (
+              <div className="mb-3">
+                <img
+                  src={currentChallenge.imageSrc}
+                  alt="Exercise"
+                  className="w-full max-w-2xl mx-auto rounded-lg border border-gray-200"
+                />
+              </div>
+            )}
+
+            {/* Audio */}
             {currentChallenge.audioSrc && (
               <div className="mb-3">
                 <AudioPlayer
                   src={currentChallenge.audioSrc}
-                  title="🔊 Audio cho bài tập"
                 />
               </div>
             )}
@@ -448,15 +478,17 @@ export function PracticeQuiz({ challenge, allChallenges, allProgress, courseId, 
             <div className="space-y-4">
               {questions.map((question: any, qIndex: number) => {
                 const isCorrect = isQuestionCorrect(question.id);
+                const result = questionResults[question.id]; // Get detailed result
 
                 return (
                   <div key={question.id} className="bg-white rounded-lg border p-4">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
                         <h3 className="text-sm font-medium text-gray-500 mb-1">Câu hỏi {qIndex + 1}:</h3>
-                        <h2 className="text-lg font-semibold text-gray-900">
-                          {question.text}
-                        </h2>
+                        <div
+                          className="prose prose-sm max-w-none text-lg font-semibold text-gray-900"
+                          dangerouslySetInnerHTML={{ __html: question.text }}
+                        />
                         {question.imageSrc && (
                           <img
                             src={question.imageSrc}
@@ -476,66 +508,89 @@ export function PracticeQuiz({ challenge, allChallenges, allProgress, courseId, 
                       )}
                     </div>
 
-                    {/* Options */}
-                    <div className="space-y-2.5">
-                      {question.options.map((option: any) => {
-                        const isSelected = answers[question.id] === option.id;
-                        const isOptionCorrect = option.correct;
+                    {/* ✅ NEW: Use QuestionRenderer for all question types */}
+                    <QuestionRenderer
+                      questionType={question.questionType || "SINGLE_CHOICE"}
+                      options={question.options.map((opt: any) => ({
+                        id: opt.id,
+                        optionText: opt.text,
+                        isCorrect: opt.correct,
+                        order: opt.order || 0,
+                      }))}
+                      metadata={question.metadata}
+                      answer={answers[question.id]}
+                      onAnswerChange={(answer) => handleAnswerChange(question.id, answer)}
+                      disabled={allSubmitted}
+                    />
 
-                        let optionClass = "border-2 p-3.5 rounded-lg cursor-pointer transition-all ";
-                        if (allSubmitted) {
-                          if (isOptionCorrect) {
-                            optionClass += "border-green-500 bg-green-50 ";
-                          } else if (isSelected && !isOptionCorrect) {
-                            optionClass += "border-red-500 bg-red-50 ";
-                          } else {
-                            optionClass += "border-gray-200 bg-gray-50 ";
-                          }
-                        } else {
-                          optionClass += isSelected
-                            ? "border-blue-500 bg-blue-50 "
-                            : "border-gray-200 hover:border-blue-300 hover:bg-blue-50/50 ";
-                        }
-
-                        return (
-                          <div
-                            key={option.id}
-                            className={optionClass}
-                            onClick={() => handleSelectOption(question.id, option.id)}
-                          >
-                            <div className="flex items-center gap-3">
-                              <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                                isSelected ? "border-blue-500 bg-blue-500" : "border-gray-300"
-                              }`}>
-                                {isSelected && <div className="w-2.5 h-2.5 bg-white rounded-full" />}
-                              </div>
-                              <span className="text-gray-900 text-base">{option.text}</span>
-                              {allSubmitted && isOptionCorrect && (
-                                <CheckCircle2 className="h-5 w-5 text-green-600 ml-auto" />
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* Show individual answer if question has correctAnswer */}
-                    {allSubmitted && question.correctAnswer && (
-                      <div className="mt-4 p-4 bg-green-50 rounded-lg border-2 border-green-300">
+                    {/* Show correct answer after submission */}
+                    {allSubmitted && (
+                      <div className={`mt-4 p-4 rounded-lg border-2 ${
+                        isCorrect
+                          ? 'bg-green-50 border-green-300'
+                          : 'bg-red-50 border-red-300'
+                      }`}>
                         <div className="flex items-start gap-3">
-                          <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                          {isCorrect ? (
+                            <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                          ) : (
+                            <XCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                          )}
                           <div className="flex-1">
-                            <p className="text-sm font-semibold text-green-900 mb-1">
-                              Đáp án đúng:
-                            </p>
-                            <p className="text-base text-gray-900 font-medium">
-                              {question.correctAnswer}
-                            </p>
+                            {/* Show feedback for MATCHING/LABELING/ORDERING */}
+                            {(question.questionType === "MATCHING" ||
+                              question.questionType === "LABELING" ||
+                              question.questionType === "ORDERING") && result.feedback && (
+                              <>
+                                <p className="text-sm font-semibold mb-1" style={{ color: isCorrect ? '#166534' : '#991b1b' }}>
+                                  Kết quả: {result.feedback}
+                                </p>
+                                <p className="text-sm text-gray-700">
+                                  Điểm: {result.pointsEarned.toFixed(2)}/{result.maxPoints}
+                                </p>
+                              </>
+                            )}
+
+                            {/* Show correct answer for TEXT_INPUT */}
+                            {question.questionType === "TEXT_INPUT" && question.correctAnswer && (
+                              <>
+                                <p className="text-sm font-semibold text-green-900 mb-1">
+                                  Đáp án đúng:
+                                </p>
+                                <p className="text-base text-gray-900 font-medium">
+                                  {question.correctAnswer}
+                                </p>
+                              </>
+                            )}
+
+                            {/* Show correct answer for SINGLE_CHOICE/MULTIPLE_CHOICE */}
+                            {(question.questionType === "SINGLE_CHOICE" || question.questionType === "MULTIPLE_CHOICE") && (
+                              <>
+                                <p className="text-sm font-semibold text-green-900 mb-2">
+                                  Đáp án đúng:
+                                </p>
+                                <div className="space-y-1">
+                                  {question.options
+                                    .filter((opt: any) => opt.correct)
+                                    .map((opt: any) => (
+                                      <div
+                                        key={opt.id}
+                                        className="prose prose-sm max-w-none text-base text-gray-900 font-medium"
+                                        dangerouslySetInnerHTML={{ __html: opt.text }}
+                                      />
+                                    ))}
+                                </div>
+                              </>
+                            )}
+
+                            {/* Show explanation if available */}
                             {question.explanation && (
                               <div className="mt-2 pt-2 border-t border-green-200">
-                                <p className="text-sm text-gray-700">
-                                  <strong>💡 Giải thích:</strong> {question.explanation}
-                                </p>
+                                <p className="text-sm text-gray-700 font-semibold mb-1">💡 Giải thích:</p>
+                                <div
+                                  className="prose prose-sm max-w-none text-sm text-gray-700"
+                                  dangerouslySetInnerHTML={{ __html: question.explanation }}
+                                />
                               </div>
                             )}
                           </div>
@@ -585,9 +640,10 @@ export function PracticeQuiz({ challenge, allChallenges, allProgress, courseId, 
                 </div>
 
                 <div className="bg-white rounded-lg p-5 border border-blue-200">
-                  <p className="text-gray-800 leading-relaxed whitespace-pre-wrap">
-                    {currentChallenge.explanation}
-                  </p>
+                  <div
+                    className="prose prose-sm max-w-none text-gray-800 leading-relaxed"
+                    dangerouslySetInnerHTML={{ __html: currentChallenge.explanation }}
+                  />
                 </div>
               </div>
             )}
@@ -627,10 +683,11 @@ export function PracticeQuiz({ challenge, allChallenges, allProgress, courseId, 
                 </div>
                 {allSubmitted && (
                   <div className="text-sm">
-                    <span className="text-gray-600">Điểm: </span>
+                    <span className="text-gray-600">Đúng: </span>
                     <span className="font-semibold text-green-600">
-                      {score}/{totalQuestions}
+                      {correctCount}/{totalQuestions}
                     </span>
+                    <span className="text-gray-500 ml-2">({score}/10 điểm)</span>
                   </div>
                 )}
               </div>

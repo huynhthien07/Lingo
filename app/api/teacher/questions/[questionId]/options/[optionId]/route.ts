@@ -57,6 +57,10 @@ export async function PUT(
       return NextResponse.json({ error: "Option not found" }, { status: 404 });
     }
 
+    if (!option.question?.challenge?.lesson?.unit?.courseId) {
+      return NextResponse.json({ error: "Invalid option structure" }, { status: 500 });
+    }
+
     // Check teacher assignment
     const assignment = await db.query.teacherAssignments.findFirst({
       where: and(
@@ -142,6 +146,10 @@ export async function DELETE(
 
     if (!option || option.questionId !== qId) {
       return NextResponse.json({ error: "Option not found" }, { status: 404 });
+    }
+
+    if (!option.question?.challenge?.lesson?.unit?.courseId) {
+      return NextResponse.json({ error: "Invalid option structure" }, { status: 500 });
     }
 
     // Check teacher assignment

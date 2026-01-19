@@ -318,7 +318,6 @@ export function TestSpeakingGradingView({ submissionId }: { submissionId: number
                 <RichTextEditor
                   value={formData.feedback}
                   onChange={(value) => setFormData({ ...formData, feedback: value })}
-                  placeholder="Provide detailed feedback for the student..."
                 />
               </CardContent>
             </Card>

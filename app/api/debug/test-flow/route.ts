@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import db from "@/db/drizzle";
-import { testAttempts, testSubmissions, testAnswers, testQuestions, tests } from "@/db/schema";
+import { testAttempts, testSubmissions, testAnswers, testQuestions, testSections, tests } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 
 /**
@@ -52,11 +52,12 @@ export async function GET() {
         const questions = await db
           .select({
             id: testQuestions.id,
-            skillType: testQuestions.skillType,
+            skillType: testSections.skillType,
             questionText: testQuestions.questionText,
           })
           .from(testQuestions)
-          .where(eq(testQuestions.testId, attempt.testId));
+          .innerJoin(testSections, eq(testQuestions.sectionId, testSections.id))
+          .where(eq(testSections.testId, attempt.testId));
 
         // Group submissions by questionId
         const submissionsByQuestion = submissions.reduce((acc: any, sub) => {
@@ -100,7 +101,7 @@ export async function GET() {
             byQuestion: submissionsByQuestion,
             duplicates: Object.entries(submissionsByQuestion)
               .filter(([_, subs]: [string, any]) => subs.length > 1)
-              .map(([questionId, subs]) => ({
+              .map(([questionId, subs]: [string, any]) => ({
                 questionId,
                 count: subs.length,
                 submissions: subs,

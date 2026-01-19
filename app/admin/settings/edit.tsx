@@ -12,7 +12,7 @@ import {
     ListButton,
     useRecordContext,
 } from "react-admin";
-import { Box, Typography, Card, CardContent, Grid } from "@mui/material";
+import { Box, Typography, Card, CardContent } from "@mui/material";
 
 const EditActions = () => (
     <TopToolbar>
@@ -57,45 +57,45 @@ export const SettingsEdit = () => {
             <SimpleForm>
                 <Card sx={{ mb: 3, width: '100%' }}>
                     <CardContent>
-                        <Grid container spacing={2}>
-                            <Grid item xs={12} md={6}>
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                            <Box sx={{ flex: '1 1 calc(50% - 8px)', minWidth: '200px' }}>
                                 <TextField
                                     source="category"
                                     label="Category"
                                     disabled
                                     fullWidth
                                 />
-                            </Grid>
-                            <Grid item xs={12} md={6}>
+                            </Box>
+                            <Box sx={{ flex: '1 1 calc(50% - 8px)', minWidth: '200px' }}>
                                 <TextField
                                     source="key"
                                     label="Setting Key"
                                     disabled
                                     fullWidth
                                 />
-                            </Grid>
-                            <Grid item xs={12}>
+                            </Box>
+                            <Box sx={{ flex: '1 1 100%' }}>
                                 <TextField
                                     source="label"
                                     label="Label"
                                     disabled
                                     fullWidth
                                 />
-                            </Grid>
-                            <Grid item xs={12}>
+                            </Box>
+                            <Box sx={{ flex: '1 1 100%' }}>
                                 <Typography variant="caption" color="text.secondary">
                                     Description
                                 </Typography>
                                 <Typography variant="body2">
                                     <TextInput source="description" multiline rows={2} fullWidth disabled />
                                 </Typography>
-                            </Grid>
-                            <Grid item xs={12}>
+                            </Box>
+                            <Box sx={{ flex: '1 1 100%' }}>
                                 <Box sx={{ mt: 2 }}>
                                     <SettingValueInput />
                                 </Box>
-                            </Grid>
-                        </Grid>
+                            </Box>
+                        </Box>
                     </CardContent>
                 </Card>
             </SimpleForm>

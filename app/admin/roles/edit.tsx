@@ -11,7 +11,7 @@ import {
     ShowButton,
     useRecordContext,
 } from "react-admin";
-import { Box, Typography, Card, CardContent, Grid, Checkbox, FormControlLabel, FormGroup } from "@mui/material";
+import { Box, Typography, Card, CardContent, Checkbox, FormControlLabel, FormGroup } from "@mui/material";
 import React from "react";
 
 const EditActions = () => (
@@ -93,9 +93,9 @@ const PermissionCheckboxes = () => {
             <Typography variant="h6" sx={{ mb: 2 }}>
                 Permissions
             </Typography>
-            <Grid container spacing={3}>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
                 {Object.entries(AVAILABLE_PERMISSIONS).map(([category, permissions]) => (
-                    <Grid item xs={12} md={6} key={category}>
+                    <Box key={category} sx={{ flex: '1 1 calc(50% - 12px)', minWidth: '300px' }}>
                         <Card variant="outlined">
                             <CardContent>
                                 <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
@@ -117,9 +117,9 @@ const PermissionCheckboxes = () => {
                                 </FormGroup>
                             </CardContent>
                         </Card>
-                    </Grid>
+                    </Box>
                 ))}
-            </Grid>
+            </Box>
             <input
                 type="hidden"
                 name="permissions"
@@ -133,16 +133,16 @@ export const RoleEdit = () => {
     return (
         <Edit actions={<EditActions />} title={<RoleTitle />} mutationMode="pessimistic">
             <SimpleForm>
-                <Grid container spacing={2}>
-                    <Grid item xs={12} md={6}>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                    <Box sx={{ flex: '1 1 calc(50% - 8px)', minWidth: '200px' }}>
                         <TextInput
                             source="name"
                             label="Role Name"
                             validate={required()}
                             fullWidth
                         />
-                    </Grid>
-                    <Grid item xs={12} md={6}>
+                    </Box>
+                    <Box sx={{ flex: '1 1 calc(50% - 8px)', minWidth: '200px' }}>
                         <SelectInput
                             source="status"
                             label="Status"
@@ -153,8 +153,8 @@ export const RoleEdit = () => {
                             validate={required()}
                             fullWidth
                         />
-                    </Grid>
-                    <Grid item xs={12}>
+                    </Box>
+                    <Box sx={{ flex: '1 1 100%' }}>
                         <TextInput
                             source="description"
                             label="Description"
@@ -162,8 +162,8 @@ export const RoleEdit = () => {
                             rows={3}
                             fullWidth
                         />
-                    </Grid>
-                </Grid>
+                    </Box>
+                </Box>
 
                 <PermissionCheckboxes />
             </SimpleForm>

@@ -36,8 +36,8 @@ export default async function StudentDashboardPage() {
     where: eq(userProgress.userId, userId),
   });
 
-  // Calculate total lessons completed
-  const completedLessons = userProgressData?.hearts || 0;
+  // Get total lessons completed (count from lesson progress)
+  const completedLessons = 0; // TODO: Implement lesson progress tracking
 
   return (
     <div className="p-6 max-w-7xl mx-auto">

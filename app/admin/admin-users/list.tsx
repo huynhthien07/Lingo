@@ -254,18 +254,19 @@ export const AdminUserList = () => {
                             TEACHER: 'warning',
                             ADMIN: 'error'
                         };
-                        const roleIcons: Record<string, React.ReactNode> = {
+                        const roleIcons: Record<string, React.ReactElement> = {
                             STUDENT: <Person />,
                             TEACHER: <Person />,
                             ADMIN: <AdminPanelSettings />
                         };
+                        const icon = roleIcons[record.role] || <Person />;
                         return (
                             <Chip
                                 label={record.role || 'STUDENT'}
                                 color={roleColors[record.role] || 'default'}
                                 variant="outlined"
                                 size="small"
-                                icon={roleIcons[record.role] || <Person />}
+                                icon={icon}
                                 onClick={(e) => e.stopPropagation()}
                             />
                         );

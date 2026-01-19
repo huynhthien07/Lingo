@@ -35,6 +35,9 @@ interface TestSection {
   skillType: string;
   order: number;
   duration: number | null;
+  passage: string | null;
+  imageSrc: string | null;
+  audioSrc: string | null;
   questions: TestQuestion[];
 }
 
@@ -43,6 +46,7 @@ interface TestQuestion {
   sectionId: number;
   questionText: string;
   passage: string | null;
+  imageSrc: string | null;
   audioSrc: string | null;
   order: number;
   points: number;

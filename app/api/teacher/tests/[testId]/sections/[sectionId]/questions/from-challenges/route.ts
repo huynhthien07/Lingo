@@ -55,7 +55,6 @@ export async function POST(
         .values({
           sectionId: parseInt(sectionId),
           questionText: challenge.question,
-          passage: challenge.passage,
           audioSrc: challenge.audioSrc,
           order: currentOrder,
           points: challenge.points,
@@ -85,8 +84,6 @@ export async function POST(
             .values({
               sectionId: parseInt(sectionId),
               questionText: subQuestion.text,
-              passage: null,
-              audioSrc: null,
               order: ++currentOrder,
               points: 1,
             })

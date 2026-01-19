@@ -1,6 +1,7 @@
 import db from "@/db/drizzle";
 import { tests, testSections, testQuestions, testQuestionOptions, challenges } from "@/db/schema";
 import { eq, desc, and, like, or } from "drizzle-orm";
+import type { QuestionType } from "@/lib/utils/question-type-mapper";
 
 // Get all tests with pagination and search
 export async function getTests(params: {
@@ -131,7 +132,6 @@ export async function updateTest(
       ...data,
       testType: data.testType as any,
       examType: data.examType as any,
-      updatedAt: new Date(),
     })
     .where(eq(tests.id, testId))
     .returning();
@@ -262,8 +262,12 @@ export async function deleteTestSection(sectionId: number) {
 export async function addTestQuestion(data: {
   sectionId: number;
   questionText: string;
+  questionType?: QuestionType | null;
   imageSrc?: string | null;
   audioSrc?: string | null;
+  correctAnswer?: string | null;
+  explanation?: string | null;
+  metadata?: any;
   points: number;
   options?: Array<{ text: string; isCorrect: boolean }>;
 }) {
@@ -280,8 +284,12 @@ export async function addTestQuestion(data: {
     .values({
       sectionId: data.sectionId,
       questionText: data.questionText,
+      questionType: data.questionType as QuestionType | null | undefined,
       imageSrc: data.imageSrc || null,
       audioSrc: data.audioSrc || null,
+      correctAnswer: data.correctAnswer || null,
+      explanation: data.explanation || null,
+      metadata: data.metadata || null,
       order,
       points: data.points,
     })
@@ -307,20 +315,31 @@ export async function updateTestQuestion(
   questionId: number,
   data: {
     questionText?: string;
+    questionType?: QuestionType | null;
     imageSrc?: string | null;
     audioSrc?: string | null;
+    correctAnswer?: string | null;
+    explanation?: string | null;
+    metadata?: any;
     points?: number;
     options?: Array<{ text: string; isCorrect: boolean }>;
   }
 ) {
+  // Build update object (only update fields that are provided)
+  const updateData: any = {};
+
+  if (data.questionText !== undefined) updateData.questionText = data.questionText;
+  if (data.questionType !== undefined) updateData.questionType = data.questionType as QuestionType | null | undefined;
+  if (data.imageSrc !== undefined) updateData.imageSrc = data.imageSrc;
+  if (data.audioSrc !== undefined) updateData.audioSrc = data.audioSrc;
+  if (data.correctAnswer !== undefined) updateData.correctAnswer = data.correctAnswer;
+  if (data.explanation !== undefined) updateData.explanation = data.explanation;
+  if (data.metadata !== undefined) updateData.metadata = data.metadata;
+  if (data.points !== undefined) updateData.points = data.points;
+
   const [updatedQuestion] = await db
     .update(testQuestions)
-    .set({
-      questionText: data.questionText,
-      imageSrc: data.imageSrc !== undefined ? data.imageSrc : undefined,
-      audioSrc: data.audioSrc !== undefined ? data.audioSrc : undefined,
-      points: data.points,
-    })
+    .set(updateData)
     .where(eq(testQuestions.id, questionId))
     .returning();
 

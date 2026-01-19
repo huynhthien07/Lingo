@@ -17,6 +17,10 @@ interface Course {
   price: number;
   currency: string;
   isFree: boolean;
+  bandFrom: number | null;
+  bandTo: number | null;
+  courseGoal: string | null;
+  enrollmentCount: number;
 }
 
 interface CourseDetailViewProps {

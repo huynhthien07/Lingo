@@ -97,10 +97,10 @@ export const getTeacherExercises = async (
       courseTitle: courses.title,
       difficulty: challenges.difficulty,
       points: challenges.points,
-      optionCount: sql<number>`(
+      questionCount: sql<number>`(
         SELECT COUNT(*)::int
-        FROM ${challengeOptions}
-        WHERE ${challengeOptions.challengeId} = ${challenges.id}
+        FROM ${questions}
+        WHERE ${questions.challengeId} = ${challenges.id}
       )`,
     })
     .from(challenges)
@@ -147,7 +147,7 @@ export const getTeacherExerciseById = async (exerciseId: number, teacherId: stri
     },
   });
 
-  if (!exercise) {
+  if (!exercise || !exercise.lesson || !exercise.lesson.unit || !exercise.lesson.unit.course) {
     throw new Error("Exercise not found");
   }
 
@@ -246,7 +246,7 @@ export const updateTeacherExercise = async (
     },
   });
 
-  if (!exercise) {
+  if (!exercise || !exercise.lesson || !exercise.lesson.unit) {
     throw new Error("Exercise not found");
   }
 
@@ -287,7 +287,7 @@ export const deleteTeacherExercise = async (exerciseId: number, teacherId: strin
     },
   });
 
-  if (!exercise) {
+  if (!exercise || !exercise.lesson || !exercise.lesson.unit) {
     throw new Error("Exercise not found");
   }
 
@@ -392,7 +392,7 @@ export const updateChallengeOption = async (
     },
   });
 
-  if (!option || option.challenge.lesson.unit.course.teacherAssignments.length === 0) {
+  if (!option || !option.challenge || option.challenge.lesson.unit.course.teacherAssignments.length === 0) {
     throw new Error("Option not found or access denied");
   }
 
@@ -442,7 +442,14 @@ export const deleteChallengeOption = async (optionId: number, teacherId: string)
     },
   });
 
-  if (!option || option.challenge.lesson.unit.course.teacherAssignments.length === 0) {
+  if (
+    !option ||
+    !option.challenge ||
+    !option.challenge.lesson ||
+    !option.challenge.lesson.unit ||
+    !option.challenge.lesson.unit.course ||
+    option.challenge.lesson.unit.course.teacherAssignments.length === 0
+  ) {
     throw new Error("Option not found or access denied");
   }
 

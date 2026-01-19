@@ -4,7 +4,7 @@
  */
 
 import db from "@/db/drizzle";
-import { tests, testQuestions } from "@/db/schema";
+import { tests, testQuestions, testSections } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
 /**
@@ -20,14 +20,21 @@ export const getTestById = async (testId: number) => {
         throw new Error("Test not found");
     }
 
-    // Get the questions for this test
-    const questions = await db.query.testQuestions.findMany({
-        where: eq(testQuestions.testId, testId),
+    // Get the sections and questions for this test
+    const sections = await db.query.testSections.findMany({
+        where: eq(testSections.testId, testId),
         with: {
-            options: true,
+            questions: {
+                with: {
+                    options: true,
+                },
+                orderBy: (testQuestions, { asc }) => [asc(testQuestions.order)],
+            },
         },
-        orderBy: (testQuestions, { asc }) => [asc(testQuestions.order)],
+        orderBy: (testSections, { asc }) => [asc(testSections.order)],
     });
+
+    const questions = sections.flatMap(section => section.questions);
 
     return {
         ...test,

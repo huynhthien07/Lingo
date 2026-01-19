@@ -32,14 +32,14 @@ export async function GET(
       with: {
         user: {
           columns: {
-            name: true,
+            userName: true,
             email: true,
           },
         },
         test: {
           columns: {
             title: true,
-            type: true,
+            testType: true,
           },
         },
         question: {
